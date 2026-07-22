@@ -1,19 +1,25 @@
 ﻿@import "tailwindcss";
 
 :root {
-  --background: oklch(98.5% 0.005 95);
-  --foreground: oklch(20% 0.02 155);
-  --primary: oklch(62% 0.15 155);
+  --background: oklch(98.2% 0.008 145);
+  --foreground: oklch(22% 0.025 155);
+  --primary: oklch(58% 0.14 155);
   --primary-foreground: oklch(99% 0.005 150);
-  --muted: oklch(96% 0.008 100);
-  --muted-foreground: oklch(50% 0.02 150);
-  --card: oklch(100% 0 0);
-  --border: oklch(92% 0.01 110);
-  --accent: oklch(93% 0.04 150);
-  --success: oklch(65% 0.16 150);
-  --radius: 0.75rem;
-  --shadow-soft: 0 1px 2px oklch(20% 0.02 150 / 0.06),
-    0 4px 16px oklch(20% 0.02 150 / 0.04);
+  --muted: oklch(95.5% 0.012 145);
+  --muted-foreground: oklch(48% 0.025 155);
+  --card: oklch(100% 0.002 145);
+  --border: oklch(90% 0.015 145);
+  --accent: oklch(94% 0.035 150);
+  --success: oklch(62% 0.15 150);
+  --chart-1: oklch(58% 0.14 155);
+  --chart-2: oklch(72% 0.12 145);
+  --chart-3: oklch(55% 0.08 200);
+  --radius: 0.875rem;
+  --shadow-soft: 0 1px 2px oklch(22% 0.03 155 / 0.05),
+    0 8px 24px oklch(22% 0.03 155 / 0.06);
+  --shadow-lift: 0 2px 4px oklch(22% 0.03 155 / 0.04),
+    0 12px 32px oklch(22% 0.04 155 / 0.08);
+  --painel-pad-bottom: 0px;
 }
 
 @theme inline {
@@ -27,13 +33,60 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-success: var(--success);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
   --radius-lg: var(--radius);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
+  background:
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      oklch(94% 0.04 150 / 0.9),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 500px at 100% 0%,
+      oklch(96% 0.02 180 / 0.7),
+      transparent 50%
+    ),
+    var(--background);
+  background-attachment: scroll;
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+@media (min-width: 1024px) {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+/* Touch-friendly scrolling for wide tables */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Bottom nav on phones + tablets (< lg / 1024px) */
+@media (max-width: 1023px) {
+  :root {
+    --painel-pad-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --painel-pad-bottom: 0px;
+  }
 }

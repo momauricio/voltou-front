@@ -1,0 +1,15 @@
+services:
+  voltou-web:
+    container_name: voltou-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.voltouapp.com}
+        API_PROXY_TARGET: ${API_PROXY_TARGET:-}
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000

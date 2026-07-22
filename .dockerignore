@@ -1,0 +1,11 @@
+# Keep local secrets out of the image; production values are build-args / compose env.
+.env
+.env.local
+.env*.local
+.next
+node_modules
+.git
+.cursor
+.vercel
+README.md
+*.md
