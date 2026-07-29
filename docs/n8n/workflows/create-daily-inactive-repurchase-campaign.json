@@ -1,0 +1,353 @@
+{
+  "name": "Create daily inactive repurchase campaign",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Daily Voltou orchestrator: logs into the API, checks store send window, then creates an 'inativos' campaign for the test store so messages land in the approval queue. Why: recover inactive customers on follow-up timing without sending WhatsApp from n8n directly."
+  },
+  "tags": [
+    { "name": "voltou" },
+    { "name": "vendedor" },
+    { "name": "campanha" }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup (once)\n1. Create credential **Basic Auth** named `Voltou API Login`\n   - User = email da loja de teste\n   - Password = senha\n2. Open node **Login Voltou API** → select that credential\n3. Run once with **When clicking Test** before activating the schedule\n4. Confirm campaign appears in `/painel/campanhas` (fila de aprovação)\n\nSecrets stay in the credential — not in this JSON.",
+        "height": 420,
+        "width": 420,
+        "color": 5
+      },
+      "id": "sticky-setup",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, 200]
+    },
+    {
+      "parameters": {
+        "content": "### Why this shape\nOrquestrador: n8n only creates the campaign via `POST /campaigns`. WAHA send + opt-out + approval stay in voltou-api / painel.\n\n`autoApprove` off on purpose for the first ship.",
+        "height": 240,
+        "width": 320,
+        "color": 4
+      },
+      "id": "sticky-why",
+      "name": "Design notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, -80]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every day at 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 220]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "tenantId",
+              "value": "737f45a3-bda3-4eda-8612-ac2ef5d1eb41",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "storeId",
+              "value": "bbf60634-eecc-4aeb-84a2-3318cd7d1239",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "apiBase",
+              "value": "https://api.voltouapp.com",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "messageTemplate",
+              "value": "Oi {{nome}}! Faz um tempinho que você não aparece por aqui. Separei algo em {{produto}} pra você — se quiser, te mando o link {{link}}. Posso te ajudar?",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "campaignName",
+              "value": "={{ 'Recompra inativos ' + $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "segment",
+              "value": "inativos",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-context",
+      "name": "Set store context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [280, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set store context').item.json.apiBase }}/auth/login",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $credentials.user, password: $credentials.password }) }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "login",
+      "name": "Login Voltou API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [560, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "Create Basic Auth credential named Voltou API Login (user=email, password=senha) and select it on this node after import. Body reads $credentials.user / $credentials.password."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Set store context').item.json.apiBase }}/stores/rules",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $('Set store context').item.json.tenantId }}"
+            },
+            {
+              "name": "storeId",
+              "value": "={{ $('Set store context').item.json.storeId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Login Voltou API').item.json.accessToken }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "get-rules",
+      "name": "Fetch store rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "in-window",
+              "leftValue": "={{ (() => {\n  const rules = $json.rules || {};\n  const now = $now.setZone('America/Sao_Paulo');\n  const dayMap = { 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb', 7: 'Dom' };\n  const day = dayMap[now.weekday];\n  const dias = Array.isArray(rules.diasAtivos) ? rules.diasAtivos : [];\n  if (dias.length && !dias.includes(day)) return false;\n  const start = rules.horaInicio || '00:00';\n  const end = rules.horaFim || '23:59';\n  const cur = now.toFormat('HH:mm');\n  return cur >= start && cur <= end;\n})() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-window",
+      "name": "Inside store send window?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 100]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "skipped",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "s2",
+              "name": "reason",
+              "value": "outside_store_send_window",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "skip-window",
+      "name": "Skip outside window",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1400, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set store context').item.json.apiBase }}/campaigns",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Login Voltou API').item.json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tenantId: $('Set store context').item.json.tenantId, storeId: $('Set store context').item.json.storeId, name: $('Set store context').item.json.campaignName, segment: $('Set store context').item.json.segment, messageTemplate: $('Set store context').item.json.messageTemplate }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-campaign",
+      "name": "Create inactive campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "Creates outreach in pending_approval. Backend enforces opt-out / readyToContact."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "ok",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "r2",
+              "name": "campaignId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "messagesCreated",
+              "value": "={{ $json.messagesCreated }}",
+              "type": "number"
+            },
+            {
+              "id": "r4",
+              "name": "campaignName",
+              "value": "={{ $('Set store context').item.json.campaignName }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "tenantId",
+              "value": "={{ $('Set store context').item.json.tenantId }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "storeId",
+              "value": "={{ $('Set store context').item.json.storeId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-result",
+      "name": "Summarize result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1680, 0]
+    }
+  ],
+  "connections": {
+    "When clicking Test": {
+      "main": [[{ "node": "Set store context", "type": "main", "index": 0 }]]
+    },
+    "Every day at 09:00": {
+      "main": [[{ "node": "Set store context", "type": "main", "index": 0 }]]
+    },
+    "Set store context": {
+      "main": [[{ "node": "Login Voltou API", "type": "main", "index": 0 }]]
+    },
+    "Login Voltou API": {
+      "main": [[{ "node": "Fetch store rules", "type": "main", "index": 0 }]]
+    },
+    "Fetch store rules": {
+      "main": [[{ "node": "Inside store send window?", "type": "main", "index": 0 }]]
+    },
+    "Inside store send window?": {
+      "main": [
+        [{ "node": "Create inactive campaign", "type": "main", "index": 0 }],
+        [{ "node": "Skip outside window", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create inactive campaign": {
+      "main": [[{ "node": "Summarize result", "type": "main", "index": 0 }]]
+    }
+  }
+}
