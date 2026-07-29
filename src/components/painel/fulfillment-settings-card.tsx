@@ -1,0 +1,270 @@
+'use client';
+
+import { FormEvent, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  getFulfillmentSettings,
+  resolveTenantContext,
+  updateFulfillmentSettings,
+  type StoreFulfillmentSettings,
+} from '@/lib/api';
+
+const fieldClass =
+  'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
+
+function centsToReaisInput(cents: number): string {
+  return (Math.max(0, cents) / 100).toFixed(2).replace('.', ',');
+}
+
+function reaisInputToCents(raw: string): number | null {
+  const trimmed = raw.trim().replace(/\s/g, '');
+  if (!trimmed) return 0;
+  const normalized = trimmed.replace(',', '.');
+  const value = Number(normalized);
+  if (Number.isNaN(value) || value < 0) return null;
+  return Math.round(value * 100);
+}
+
+export function FulfillmentSettingsCard() {
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+  const [shippingReais, setShippingReais] = useState('0,00');
+  const [pickupAddressText, setPickupAddressText] = useState('');
+  const [orderNotifyPhone, setOrderNotifyPhone] = useState('');
+  const [savedNotifyPhone, setSavedNotifyPhone] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  const hasSession = Boolean(tenantId && storeId);
+  const showNotifyBanner = !savedNotifyPhone?.trim() && !orderNotifyPhone.trim();
+
+  const applySettings = useCallback((data: StoreFulfillmentSettings) => {
+    setDeliveryEnabled(data.deliveryEnabled);
+    setShippingReais(centsToReaisInput(data.shippingCents));
+    setPickupAddressText(data.pickupAddressText ?? '');
+    setOrderNotifyPhone(data.orderNotifyPhoneE164 ?? '');
+    setSavedNotifyPhone(data.orderNotifyPhoneE164);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolveTenantContext().then((ctx) => {
+      if (cancelled) return;
+      setTenantId(ctx.tenantId);
+      setStoreId(ctx.storeId);
+      setSessionReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (!tenantId || !storeId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      applySettings(await getFulfillmentSettings(tenantId, storeId));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível carregar as configurações de entrega.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId, storeId, applySettings]);
+
+  useEffect(() => {
+    if (!sessionReady || !hasSession) return;
+    void refresh();
+  }, [sessionReady, hasSession, refresh]);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setOk(null);
+    if (!tenantId || !storeId) {
+      setError('Faça login para salvar as configurações de entrega.');
+      return;
+    }
+
+    const shippingCents = reaisInputToCents(shippingReais);
+    if (shippingCents === null) {
+      setError('Informe um valor de frete válido (R$).');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const phoneRaw = orderNotifyPhone.trim();
+      const saved = await updateFulfillmentSettings({
+        tenantId,
+        storeId,
+        deliveryEnabled,
+        shippingCents,
+        pickupAddressText: pickupAddressText.trim() || null,
+        orderNotifyPhoneE164: phoneRaw || null,
+      });
+      applySettings(saved);
+      setOk('Configurações de entrega salvas.');
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Falha ao salvar configurações de entrega.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+      <h2 className="text-base font-semibold text-foreground">
+        Entrega e pedidos
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Frete fixo, endereço de retirada e WhatsApp para avisos quando um pedido
+        for pago.
+      </p>
+
+      {!sessionReady ? (
+        <p className="mt-4 text-sm text-muted-foreground">Carregando…</p>
+      ) : !hasSession ? (
+        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <Link href="/entrar" className="font-medium underline">
+            Entre na conta
+          </Link>{' '}
+          para configurar entrega e avisos de pedido.
+        </p>
+      ) : null}
+
+      {showNotifyBanner && hasSession && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Pedidos só aparecem no painel até você cadastrar um WhatsApp de aviso.
+        </p>
+      )}
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="mt-5 space-y-4"
+        noValidate
+      >
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Entrega em casa
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Quando desligado, o cliente só pode retirar na loja.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={deliveryEnabled}
+            aria-label="Entrega em casa"
+            disabled={loading || saving || !hasSession}
+            onClick={() => setDeliveryEnabled((v) => !v)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-60 ${
+              deliveryEnabled ? 'bg-primary' : 'bg-muted'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition ${
+                deliveryEnabled ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+          </button>
+        </div>
+
+        <div>
+          <label htmlFor="fulfillmentShipping" className="text-sm font-medium">
+            Frete fixo (R$)
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              R$
+            </span>
+            <input
+              id="fulfillmentShipping"
+              type="text"
+              inputMode="decimal"
+              value={shippingReais}
+              onChange={(e) => setShippingReais(e.target.value)}
+              placeholder="0,00"
+              className={`${fieldClass} pl-10`}
+              disabled={loading || saving || !hasSession || !deliveryEnabled}
+            />
+          </div>
+          {!deliveryEnabled && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Frete só se aplica quando a entrega em casa estiver ligada.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="fulfillmentPickup" className="text-sm font-medium">
+            Endereço de retirada
+          </label>
+          <textarea
+            id="fulfillmentPickup"
+            value={pickupAddressText}
+            onChange={(e) => setPickupAddressText(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Ex.: Rua Exemplo, 100 — Centro — São Paulo/SP"
+            className={`${fieldClass} resize-none`}
+            disabled={loading || saving || !hasSession}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="fulfillmentNotifyPhone" className="text-sm font-medium">
+            WhatsApp para avisos de pedido
+          </label>
+          <input
+            id="fulfillmentNotifyPhone"
+            type="tel"
+            value={orderNotifyPhone}
+            onChange={(e) => setOrderNotifyPhone(e.target.value)}
+            placeholder="+5511999999999"
+            className={fieldClass}
+            disabled={loading || saving || !hasSession}
+          />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Diferente do WhatsApp conectado para falar com clientes.
+          </p>
+        </div>
+
+        {error && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+        {ok && (
+          <p className="rounded-xl border border-border bg-accent/50 px-3 py-2 text-sm text-foreground">
+            {ok}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || saving || !hasSession}
+          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:opacity-60"
+        >
+          {saving ? 'Salvando…' : 'Salvar entrega e pedidos'}
+        </button>
+      </form>
+    </section>
+  );
+}

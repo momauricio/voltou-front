@@ -1,18 +1,46 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { StoreBrandMark } from '@/components/checkout/store-brand-mark';
+import type { CheckoutShippingAddress } from '@/components/checkout/transparent-checkout-brick';
 import {
   checkoutFontLinkHref,
   resolveCheckoutFont,
 } from '@/lib/checkout-branding';
 import {
   getPublicOffer,
-  payPublicOffer,
   type PublicOffer,
+  type TransparentPaymentResult,
 } from '@/lib/api';
-import { safeExternalRedirect } from '@/lib/safe-redirect';
+
+const TransparentCheckoutBrick = dynamic(
+  () =>
+    import('@/components/checkout/transparent-checkout-brick').then(
+      (m) => m.TransparentCheckoutBrick,
+    ),
+  { ssr: false, loading: () => (
+    <p className="py-6 text-center text-sm text-neutral-500">
+      Carregando pagamento…
+    </p>
+  ) },
+);
+
+const EMPTY_ADDRESS: CheckoutShippingAddress = {
+  recipientName: '',
+  phoneE164: '',
+  cep: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+};
+
+const addressFieldClass =
+  'mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-black/5';
 
 function formatCurrency(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', {
@@ -30,9 +58,16 @@ export default function LojaOfferPage({
   const router = useRouter();
   const [offer, setOffer] = useState<PublicOffer | null>(null);
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<
+    'pickup' | 'delivery'
+  >('pickup');
+  const [shippingAddress, setShippingAddress] =
+    useState<CheckoutShippingAddress>(EMPTY_ADDRESS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [paying, setPaying] = useState(false);
+  const [pixPending, setPixPending] = useState<TransparentPaymentResult | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +85,7 @@ export default function LojaOfferPage({
             .filter((a) => a.selectedByDefault)
             .map((a) => a.id),
         );
+        setFulfillmentMethod('pickup');
       })
       .catch(() => {
         if (!cancelled) {
@@ -78,33 +114,26 @@ export default function LojaOfferPage({
     document.head.appendChild(link);
   }, [offer]);
 
-  async function handlePay() {
-    if (!offer || paying) return;
-    setPaying(true);
-    setError(null);
-    try {
-      const { checkout_url } = await payPublicOffer(
-        slug,
-        cupom,
-        selectedAddonIds,
-      );
-      safeExternalRedirect(checkout_url);
-    } catch (err) {
-      setPaying(false);
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Não foi possível abrir o pagamento.',
-      );
-    }
-  }
-
   function toggleAddon(addonId: string) {
     setSelectedAddonIds((prev) =>
       prev.includes(addonId)
         ? prev.filter((id) => id !== addonId)
         : [...prev, addonId],
     );
+    setPixPending(null);
+  }
+
+  function updateAddressField<K extends keyof CheckoutShippingAddress>(
+    key: K,
+    value: CheckoutShippingAddress[K],
+  ) {
+    setShippingAddress((prev) => ({ ...prev, [key]: value }));
+    setPixPending(null);
+  }
+
+  function selectFulfillment(method: 'pickup' | 'delivery') {
+    setFulfillmentMethod(method);
+    setPixPending(null);
   }
 
   if (loading) {
@@ -127,14 +156,18 @@ export default function LojaOfferPage({
     offer.branding.message?.trim() ||
     `Oi ${offer.customerFirstName}! Este desconto foi separado só pra você.`;
   const isExpired = offer.status === 'expired';
-  const canPay = offer.canPay && !isExpired;
+  const canPay = offer.canPay && !isExpired && Boolean(offer.mpPublicKey);
   const addons = offer.addons ?? [];
   const selectedAddons = addons.filter((a) =>
     selectedAddonIds.includes(a.id),
   );
-  const liveTotalCents =
+  const productsCents =
     offer.amountCents +
     selectedAddons.reduce((sum, a) => sum + a.amountCents, 0);
+  const shippingCents =
+    fulfillmentMethod === 'delivery' ? offer.shippingCents : 0;
+  const chargeCents = productsCents + shippingCents;
+  const deliveryAvailable = offer.deliveryEnabled;
 
   return (
     <div
@@ -206,9 +239,7 @@ export default function LojaOfferPage({
 
           {addons.length > 0 && (
             <div className="space-y-3">
-              <p
-                className="text-sm font-semibold text-neutral-900"
-              >
+              <p className="text-sm font-semibold text-neutral-900">
                 Leve também
               </p>
               <ul className="space-y-2">
@@ -218,26 +249,25 @@ export default function LojaOfferPage({
                   return (
                     <li key={addon.id}>
                       <label
-                        className="flex cursor-pointer items-start gap-3 rounded-xl border border-black/5 px-3 py-3 transition hover:bg-neutral-50"
-                        style={
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition ${
                           checked
-                            ? { borderColor: `${primary}55`, background: secondary }
-                            : undefined
-                        }
+                            ? 'border-current bg-black/[0.02]'
+                            : 'border-black/10'
+                        }`}
+                        style={checked ? { color: primary } : undefined}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleAddon(addon.id)}
-                          className="mt-1 h-4 w-4 shrink-0 rounded border-neutral-300"
-                          style={{ accentColor: primary }}
+                          className="mt-1"
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium text-neutral-900">
                             {addon.productName}
                           </span>
                           <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-sm">
-                            <span className="text-neutral-500 line-through">
+                            <span className="text-neutral-400 line-through">
                               {formatCurrency(addon.listPriceCents)}
                             </span>
                             <span className="font-semibold text-neutral-900">
@@ -258,14 +288,224 @@ export default function LojaOfferPage({
                   );
                 })}
               </ul>
-              <div className="flex items-baseline justify-between border-t border-black/5 pt-3">
-                <span className="text-sm text-neutral-600">Total</span>
-                <span className="text-xl font-bold text-neutral-900">
-                  {formatCurrency(liveTotalCents)}
-                </span>
-              </div>
             </div>
           )}
+
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-neutral-900">
+              Como você quer receber?
+            </p>
+            <div className="grid gap-2">
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                  fulfillmentMethod === 'pickup'
+                    ? 'border-current bg-black/[0.02]'
+                    : 'border-black/10'
+                }`}
+                style={
+                  fulfillmentMethod === 'pickup' ? { color: primary } : undefined
+                }
+              >
+                <input
+                  type="radio"
+                  name="fulfillment"
+                  checked={fulfillmentMethod === 'pickup'}
+                  onChange={() => selectFulfillment('pickup')}
+                  className="mt-1"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-neutral-900">
+                    Retirar na loja
+                  </span>
+                  <span className="mt-0.5 block text-xs text-neutral-500">
+                    Pague agora e retire na loja
+                  </span>
+                </span>
+              </label>
+              {deliveryAvailable && (
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                    fulfillmentMethod === 'delivery'
+                      ? 'border-current bg-black/[0.02]'
+                      : 'border-black/10'
+                  }`}
+                  style={
+                    fulfillmentMethod === 'delivery'
+                      ? { color: primary }
+                      : undefined
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    checked={fulfillmentMethod === 'delivery'}
+                    onChange={() => selectFulfillment('delivery')}
+                    className="mt-1"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-neutral-900">
+                      Receber em casa
+                    </span>
+                    <span className="mt-0.5 block text-xs text-neutral-500">
+                      Pague agora e receba em casa
+                      {offer.shippingCents > 0
+                        ? ` · frete ${formatCurrency(offer.shippingCents)}`
+                        : ' · frete grátis'}
+                    </span>
+                  </span>
+                </label>
+              )}
+            </div>
+
+            {fulfillmentMethod === 'pickup' && offer.pickupAddressText && (
+              <p className="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+                <span className="font-medium text-neutral-900">Retirada: </span>
+                {offer.pickupAddressText}
+              </p>
+            )}
+
+            {fulfillmentMethod === 'delivery' && (
+              <div className="space-y-3 rounded-xl border border-black/5 bg-neutral-50/80 p-3">
+                <p className="text-sm font-semibold text-neutral-900">
+                  Endereço de entrega
+                </p>
+                <label className="block text-xs font-medium text-neutral-600">
+                  Nome de quem recebe
+                  <input
+                    className={addressFieldClass}
+                    value={shippingAddress.recipientName}
+                    onChange={(e) =>
+                      updateAddressField('recipientName', e.target.value)
+                    }
+                    autoComplete="name"
+                  />
+                </label>
+                <label className="block text-xs font-medium text-neutral-600">
+                  WhatsApp / telefone
+                  <input
+                    className={addressFieldClass}
+                    value={shippingAddress.phoneE164}
+                    onChange={(e) =>
+                      updateAddressField('phoneE164', e.target.value)
+                    }
+                    placeholder="+5511999999999"
+                    inputMode="tel"
+                    autoComplete="tel"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-medium text-neutral-600">
+                    CEP
+                    <input
+                      className={addressFieldClass}
+                      value={shippingAddress.cep}
+                      onChange={(e) =>
+                        updateAddressField('cep', e.target.value)
+                      }
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-neutral-600">
+                    UF
+                    <input
+                      className={addressFieldClass}
+                      value={shippingAddress.state}
+                      onChange={(e) =>
+                        updateAddressField(
+                          'state',
+                          e.target.value.slice(0, 2).toUpperCase(),
+                        )
+                      }
+                      maxLength={2}
+                      autoComplete="address-level1"
+                    />
+                  </label>
+                </div>
+                <label className="block text-xs font-medium text-neutral-600">
+                  Rua
+                  <input
+                    className={addressFieldClass}
+                    value={shippingAddress.street}
+                    onChange={(e) =>
+                      updateAddressField('street', e.target.value)
+                    }
+                    autoComplete="street-address"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-medium text-neutral-600">
+                    Número
+                    <input
+                      className={addressFieldClass}
+                      value={shippingAddress.number}
+                      onChange={(e) =>
+                        updateAddressField('number', e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-neutral-600">
+                    Complemento
+                    <input
+                      className={addressFieldClass}
+                      value={shippingAddress.complement ?? ''}
+                      onChange={(e) =>
+                        updateAddressField('complement', e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+                <label className="block text-xs font-medium text-neutral-600">
+                  Bairro
+                  <input
+                    className={addressFieldClass}
+                    value={shippingAddress.neighborhood}
+                    onChange={(e) =>
+                      updateAddressField('neighborhood', e.target.value)
+                    }
+                  />
+                </label>
+                <label className="block text-xs font-medium text-neutral-600">
+                  Cidade
+                  <input
+                    className={addressFieldClass}
+                    value={shippingAddress.city}
+                    onChange={(e) =>
+                      updateAddressField('city', e.target.value)
+                    }
+                    autoComplete="address-level2"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5 border-t border-black/5 pt-3">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-neutral-600">Produtos</span>
+              <span className="font-medium text-neutral-900">
+                {formatCurrency(productsCents)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-neutral-600">Frete</span>
+              <span className="font-medium text-neutral-900">
+                {fulfillmentMethod === 'delivery'
+                  ? shippingCents > 0
+                    ? formatCurrency(shippingCents)
+                    : 'Grátis'
+                  : formatCurrency(0)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-sm font-semibold text-neutral-900">
+                Total
+              </span>
+              <span className="text-xl font-bold text-neutral-900">
+                {formatCurrency(chargeCents)}
+              </span>
+            </div>
+          </div>
 
           <p className="text-sm leading-relaxed text-neutral-600">
             {personalMsg}
@@ -281,26 +521,67 @@ export default function LojaOfferPage({
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
               Esta oferta expirou. Peça um novo link na loja.
             </p>
+          ) : pixPending ? (
+            <div className="space-y-3 rounded-xl border border-black/5 bg-neutral-50 p-4">
+              <p className="text-sm font-semibold text-neutral-900">
+                Pix gerado — pague para confirmar
+              </p>
+              {pixPending.pixQrCodeBase64 && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`data:image/png;base64,${pixPending.pixQrCodeBase64}`}
+                  alt="QR Code Pix"
+                  className="mx-auto h-48 w-48 rounded-lg bg-white p-2"
+                />
+              )}
+              {pixPending.pixQrCode && (
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-medium text-neutral-700"
+                  onClick={() =>
+                    void navigator.clipboard.writeText(pixPending.pixQrCode!)
+                  }
+                >
+                  Copiar código Pix
+                </button>
+              )}
+              <button
+                type="button"
+                className="flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold text-white"
+                style={{ background: primary }}
+                onClick={() =>
+                  router.push(`/aguardando/${slug}/${cupom}`)
+                }
+              >
+                Já paguei — acompanhar
+              </button>
+            </div>
+          ) : canPay && offer.mpPublicKey ? (
+            <TransparentCheckoutBrick
+              publicKey={offer.mpPublicKey}
+              amountCents={chargeCents}
+              storeSlug={slug}
+              coupon={cupom}
+              selectedAddonIds={selectedAddonIds}
+              fulfillmentMethod={fulfillmentMethod}
+              shippingAddress={
+                fulfillmentMethod === 'delivery' ? shippingAddress : undefined
+              }
+              primaryColor={primary}
+              onApproved={() => router.push(`/obrigado/${slug}/${cupom}`)}
+              onPending={(result) => {
+                if (result.pixQrCode || result.pixQrCodeBase64) {
+                  setPixPending(result);
+                } else {
+                  router.push(`/aguardando/${slug}/${cupom}`);
+                }
+              }}
+              onError={(message) => setError(message)}
+            />
           ) : (
-            <button
-              type="button"
-              disabled={!canPay || paying}
-              onClick={() => void handlePay()}
-              className="flex h-12 w-full items-center justify-center rounded-xl text-sm font-semibold text-white transition hover:opacity-95 disabled:opacity-50"
-              style={{ background: primary }}
-            >
-              {paying
-                ? 'Abrindo pagamento…'
-                : addons.length > 0
-                  ? `Garantir meu desconto · ${formatCurrency(liveTotalCents)}`
-                  : 'Garantir meu desconto'}
-            </button>
-          )}
-
-          {!canPay && !isExpired && (
             <p className="text-center text-xs text-neutral-500">
               Pagamento temporariamente indisponível. A loja precisa conectar o
-              Mercado Pago.
+              Mercado Pago (e liberar a chave pública da conta).
             </p>
           )}
         </div>

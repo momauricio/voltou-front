@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
+import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
 import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
 import { changePassword, getStoredAccessToken } from '@/lib/api';
 
@@ -62,12 +63,14 @@ export default function PerfilPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
         title="Perfil"
-        subtitle="Gerencie a conta da loja, pagamentos, aparência do checkout e a segurança do acesso."
+        subtitle="Gerencie a conta da loja, pagamentos, entrega, aparência do checkout e a segurança do acesso."
       />
 
       <Suspense fallback={null}>
         <PaymentProvidersCard />
       </Suspense>
+
+      <FulfillmentSettingsCard />
 
       <CheckoutBrandingCard />
 
