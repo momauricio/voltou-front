@@ -50,6 +50,24 @@ function isShippingAddressComplete(
   );
 }
 
+/** Fingerprint so Payment Brick remounts when the delivery address changes. */
+function shippingAddressKey(
+  address: CheckoutShippingAddress | undefined,
+): string {
+  if (!address) return 'none';
+  return [
+    address.recipientName.trim(),
+    address.phoneE164.trim(),
+    address.cep.replace(/\D/g, ''),
+    address.street.trim(),
+    address.number.trim(),
+    address.complement?.trim() ?? '',
+    address.neighborhood.trim(),
+    address.city.trim(),
+    address.state.trim().toUpperCase(),
+  ].join('|');
+}
+
 /**
  * Payment Brick: cartão + Pix (sem boleto).
  * customization.paymentMethods omite `ticket` de propósito.
@@ -110,7 +128,7 @@ export function TransparentCheckoutBrick({
       </div>
       <div className="px-1 py-2">
         <Payment
-          key={`${publicKey}-${amountCents}-${fulfillmentMethod}-${selectedAddonIds.join(',')}`}
+          key={`${publicKey}-${amountCents}-${fulfillmentMethod}-${selectedAddonIds.join(',')}-${shippingAddressKey(shippingAddress)}`}
           initialization={{ amount }}
           customization={{
             paymentMethods: {

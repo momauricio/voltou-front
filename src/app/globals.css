@@ -20,6 +20,16 @@
   --shadow-lift: 0 2px 4px oklch(22% 0.03 155 / 0.04),
     0 12px 32px oklch(22% 0.04 155 / 0.08);
   --painel-pad-bottom: 0px;
+  /* Compat: checkout branding still references Geist tokens */
+  --font-geist-sans: var(--font-jakarta);
+  --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    /* Space for fixed mobile bottom nav */
+    --painel-pad-bottom: 4.25rem;
+  }
 }
 
 @theme inline {
@@ -37,8 +47,8 @@
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --radius-lg: var(--radius);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 html {
@@ -62,7 +72,7 @@ body {
     var(--background);
   background-attachment: scroll;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
   min-height: 100dvh;
 }
 
@@ -88,5 +98,35 @@ body {
 @media (min-width: 1024px) {
   :root {
     --painel-pad-bottom: 0px;
+  }
+}
+
+/* Landing — motion */
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-reveal {
+  animation: landing-reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-reveal-delay-0 {
+  animation-delay: 0.06s;
+}
+
+.landing-reveal-delay-1 {
+  animation-delay: 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal {
+    animation: none !important;
   }
 }

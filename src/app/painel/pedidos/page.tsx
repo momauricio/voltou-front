@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
+  cancelMerchantOrder,
   listMerchantOrders,
   resolveTenantContext,
   updateOrderFulfillment,
@@ -86,6 +87,7 @@ function formatAddress(order: MerchantOrder) {
 }
 
 function availableActions(order: MerchantOrder): FulfillmentAction[] {
+  if (order.status === 'cancelled') return [];
   const status = order.fulfillmentStatus ?? 'awaiting';
   const method = order.fulfillmentMethod;
 
@@ -174,17 +176,56 @@ export default function PedidosPage() {
     if (!tenantCtx) return;
     setActionBusy(`${orderId}:${status}`);
     try {
+      let trackingCode: string | undefined;
+      if (status === 'shipped') {
+        const order = orders.find((o) => o.id === orderId);
+        const current = order?.trackingCode?.trim() ?? '';
+        const entered = window.prompt(
+          'Código de rastreio (opcional):',
+          current,
+        );
+        if (entered === null) {
+          setActionBusy(null);
+          return;
+        }
+        trackingCode = entered.trim() || undefined;
+      }
       await updateOrderFulfillment({
         checkoutId: orderId,
         tenantId: tenantCtx.tenantId,
         storeId: tenantCtx.storeId,
         status,
+        ...(trackingCode ? { trackingCode } : {}),
       });
       await reload(tenantCtx.tenantId, tenantCtx.storeId, filter);
       setErro(null);
     } catch (err) {
       window.alert(
         err instanceof Error ? err.message : 'Erro ao atualizar pedido.',
+      );
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function handleCancel(orderId: string) {
+    if (!tenantCtx) return;
+    const ok = window.confirm(
+      'Cancelar este pedido e reembolsar o pagamento no Mercado Pago?',
+    );
+    if (!ok) return;
+    setActionBusy(`${orderId}:cancel`);
+    try {
+      await cancelMerchantOrder({
+        checkoutId: orderId,
+        tenantId: tenantCtx.tenantId,
+        storeId: tenantCtx.storeId,
+      });
+      await reload(tenantCtx.tenantId, tenantCtx.storeId, filter);
+      setErro(null);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : 'Erro ao cancelar pedido.',
       );
     } finally {
       setActionBusy(null);
@@ -246,6 +287,7 @@ export default function PedidosPage() {
                   order={order}
                   actionBusy={actionBusy}
                   onAction={handleAction}
+                  onCancel={handleCancel}
                 />
               ))
             )}
@@ -282,6 +324,7 @@ export default function PedidosPage() {
                         order={order}
                         actionBusy={actionBusy}
                         onAction={handleAction}
+                        onCancel={handleCancel}
                       />
                     ))
                   )}
@@ -299,12 +342,21 @@ type PedidoActionsProps = {
   order: MerchantOrder;
   actionBusy: string | null;
   onAction: (orderId: string, status: FulfillmentAction) => void;
+  onCancel: (orderId: string) => void;
 };
 
-function PedidoActions({ order, actionBusy, onAction }: PedidoActionsProps) {
+function PedidoActions({
+  order,
+  actionBusy,
+  onAction,
+  onCancel,
+}: PedidoActionsProps) {
+  const cancelled = order.status === 'cancelled';
   const actions = availableActions(order);
-  if (actions.length === 0) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+  if (cancelled) {
+    return (
+      <span className="text-xs font-medium text-red-700">Cancelado</span>
+    );
   }
   return (
     <div className="flex flex-wrap gap-2">
@@ -327,13 +379,27 @@ function PedidoActions({ order, actionBusy, onAction }: PedidoActionsProps) {
           </button>
         );
       })}
+      {order.fulfillmentStatus !== 'done' && (
+        <button
+          type="button"
+          disabled={Boolean(actionBusy)}
+          onClick={() => onCancel(order.id)}
+          className="inline-flex h-9 items-center rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+        >
+          {actionBusy === `${order.id}:cancel` ? '…' : 'Cancelar'}
+        </button>
+      )}
+      {actions.length === 0 && order.fulfillmentStatus === 'done' && (
+        <span className="text-xs text-muted-foreground">—</span>
+      )}
     </div>
   );
 }
 
-function PedidoCard({ order, actionBusy, onAction }: PedidoActionsProps) {
+function PedidoCard({ order, actionBusy, onAction, onCancel }: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
   const address = order.fulfillmentMethod === 'delivery' ? formatAddress(order) : null;
+  const cancelled = order.status === 'cancelled';
 
   return (
     <li className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
@@ -347,8 +413,10 @@ function PedidoCard({ order, actionBusy, onAction }: PedidoActionsProps) {
           </p>
         </div>
         <StatusBadge
-          label={STATUS_LABEL[status] ?? status}
-          tone={STATUS_TONE[status] ?? 'muted'}
+          label={
+            cancelled ? 'Cancelado' : (STATUS_LABEL[status] ?? status)
+          }
+          tone={cancelled ? 'danger' : (STATUS_TONE[status] ?? 'muted')}
         />
       </div>
       <div className="mt-3 space-y-1 text-sm text-muted-foreground">
@@ -363,6 +431,12 @@ function PedidoCard({ order, actionBusy, onAction }: PedidoActionsProps) {
           )}
           <span>{methodLabel(order.fulfillmentMethod)}</span>
         </p>
+        {order.trackingCode && (
+          <p className="text-xs">
+            <span className="text-foreground/70">Rastreio · </span>
+            {order.trackingCode}
+          </p>
+        )}
         {address && (
           <p className="text-xs">
             <span className="text-foreground/70">Endereço · </span>
@@ -374,15 +448,21 @@ function PedidoCard({ order, actionBusy, onAction }: PedidoActionsProps) {
         )}
       </div>
       <div className="mt-3">
-        <PedidoActions order={order} actionBusy={actionBusy} onAction={onAction} />
+        <PedidoActions
+          order={order}
+          actionBusy={actionBusy}
+          onAction={onAction}
+          onCancel={onCancel}
+        />
       </div>
     </li>
   );
 }
 
-function PedidoRow({ order, actionBusy, onAction }: PedidoActionsProps) {
+function PedidoRow({ order, actionBusy, onAction, onCancel }: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
   const address = order.fulfillmentMethod === 'delivery' ? formatAddress(order) : null;
+  const cancelled = order.status === 'cancelled';
 
   return (
     <tr className="transition hover:bg-muted/40">
@@ -395,6 +475,9 @@ function PedidoRow({ order, actionBusy, onAction }: PedidoActionsProps) {
       </td>
       <td className="px-5 py-3.5 text-muted-foreground">
         <p>{itemsLabel(order)}</p>
+        {order.trackingCode && (
+          <p className="mt-1 text-xs">Rastreio {order.trackingCode}</p>
+        )}
         {address && (
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">{address}</p>
         )}
@@ -414,12 +497,19 @@ function PedidoRow({ order, actionBusy, onAction }: PedidoActionsProps) {
       </td>
       <td className="px-5 py-3.5">
         <StatusBadge
-          label={STATUS_LABEL[status] ?? status}
-          tone={STATUS_TONE[status] ?? 'muted'}
+          label={
+            cancelled ? 'Cancelado' : (STATUS_LABEL[status] ?? status)
+          }
+          tone={cancelled ? 'danger' : (STATUS_TONE[status] ?? 'muted')}
         />
       </td>
       <td className="px-5 py-3.5">
-        <PedidoActions order={order} actionBusy={actionBusy} onAction={onAction} />
+        <PedidoActions
+          order={order}
+          actionBusy={actionBusy}
+          onAction={onAction}
+          onCancel={onCancel}
+        />
       </td>
     </tr>
   );

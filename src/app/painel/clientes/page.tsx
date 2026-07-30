@@ -434,8 +434,20 @@ function ClientesPageInner() {
       {/* Mobile cards */}
       <ul className="space-y-2 lg:hidden">
         {filtrados.length === 0 ? (
-          <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
-            Nenhum cliente encontrado com esses filtros.
+          <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center shadow-[var(--shadow-soft)]">
+            <p className="text-sm text-muted-foreground">
+              {usingApi && clientes.length === 0
+                ? 'Nenhum cliente na loja ainda.'
+                : 'Nenhum cliente encontrado com esses filtros.'}
+            </p>
+            {usingApi && clientes.length === 0 && (
+              <Link
+                href="/painel/clientes?import=1"
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+              >
+                Importar planilha do PDV
+              </Link>
+            )}
           </li>
         ) : (
           filtrados.map((c) => (
@@ -479,8 +491,23 @@ function ClientesPageInner() {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-muted-foreground">
-                    Nenhum cliente encontrado com esses filtros.
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-sm text-muted-foreground"
+                  >
+                    {usingApi && clientes.length === 0 ? (
+                      <span className="inline-flex flex-col items-center gap-3">
+                        Nenhum cliente na loja ainda.
+                        <Link
+                          href="/painel/clientes?import=1"
+                          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+                        >
+                          Importar planilha do PDV
+                        </Link>
+                      </span>
+                    ) : (
+                      'Nenhum cliente encontrado com esses filtros.'
+                    )}
                   </td>
                 </tr>
               )}

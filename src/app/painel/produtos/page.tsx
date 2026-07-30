@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/painel/page-header';
 import { Modal } from '@/components/painel/modal';
@@ -645,8 +646,20 @@ function ProdutosPageInner() {
 
       <ul className="space-y-2 lg:hidden">
         {filtrados.length === 0 ? (
-          <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
-            Nenhum produto encontrado com esses filtros.
+          <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center shadow-[var(--shadow-soft)]">
+            <p className="text-sm text-muted-foreground">
+              {usingApi && produtos.length === 0
+                ? 'Nenhum produto na loja ainda.'
+                : 'Nenhum produto encontrado com esses filtros.'}
+            </p>
+            {usingApi && produtos.length === 0 && (
+              <Link
+                href="/painel/produtos?import=1"
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+              >
+                Importar catálogo
+              </Link>
+            )}
           </li>
         ) : (
           filtrados.map((p) => (
@@ -776,8 +789,23 @@ function ProdutosPageInner() {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">
-                    Nenhum produto encontrado com esses filtros.
+                  <td
+                    colSpan={9}
+                    className="px-5 py-10 text-center text-sm text-muted-foreground"
+                  >
+                    {usingApi && produtos.length === 0 ? (
+                      <span className="inline-flex flex-col items-center gap-3">
+                        Nenhum produto na loja ainda.
+                        <Link
+                          href="/painel/produtos?import=1"
+                          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+                        >
+                          Importar catálogo
+                        </Link>
+                      </span>
+                    ) : (
+                      'Nenhum produto encontrado com esses filtros.'
+                    )}
                   </td>
                 </tr>
               )}

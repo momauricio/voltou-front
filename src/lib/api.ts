@@ -134,9 +134,20 @@ export async function loginAccount(payload: LoginPayload) {
 }
 
 export async function requestPasswordReset(email: string) {
-  return jsonFetch<{ message: string }>(`/auth/forgot-password`, {
+  return jsonFetch<{ message: string; devResetUrl?: string }>(
+    `/auth/forgot-password`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      auth: false,
+    },
+  );
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  return jsonFetch<{ message: string }>(`/auth/reset-password`, {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ token, newPassword }),
     auth: false,
   });
 }
@@ -481,6 +492,11 @@ export type PublicOffer = {
   expiresAt: string | null;
   paidAt: string | null;
   canPay: boolean;
+  paymentMode?: 'transparent' | 'pro';
+  mpPublicKey?: string | null;
+  deliveryEnabled: boolean;
+  shippingCents: number;
+  pickupAddressText: string | null;
   addons: PublicOfferAddon[];
   discountCaps: {
     oneProductBps: number;
@@ -627,6 +643,51 @@ export async function payPublicOffer(
   );
 }
 
+export type TransparentPaymentResult = {
+  paymentId: number;
+  status: string;
+  statusDetail: string | null;
+  amountCents: number;
+  pixQrCode: string | null;
+  pixQrCodeBase64: string | null;
+  pixTicketUrl: string | null;
+};
+
+export async function createTransparentOfferPayment(
+  storeSlug: string,
+  coupon: string,
+  payload: {
+    selectedAddonIds?: string[];
+    paymentMethodId: string;
+    token?: string;
+    installments?: number;
+    issuerId?: string;
+    payerEmail: string;
+    payerIdentification?: { type: string; number: string };
+    fulfillmentMethod: 'pickup' | 'delivery';
+    shippingAddress?: {
+      recipientName: string;
+      phoneE164: string;
+      cep: string;
+      street: string;
+      number: string;
+      complement?: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+    };
+  },
+) {
+  return jsonFetch<TransparentPaymentResult>(
+    `/offers/public/${encodeURIComponent(storeSlug)}/${encodeURIComponent(coupon)}/payments`,
+    {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function getPublicOfferStatus(storeSlug: string, coupon: string) {
   return jsonFetch<PublicOfferStatus>(
     `/offers/public/${encodeURIComponent(storeSlug)}/${encodeURIComponent(coupon)}/status`,
@@ -648,6 +709,114 @@ export async function createApiCheckout(payload: {
     method: 'POST',
     body: JSON.stringify({ createdBy: 'human', ...payload }),
   });
+}
+
+// ---- Entrega e pedidos ----
+
+export type StoreFulfillmentSettings = {
+  storeId: string;
+  deliveryEnabled: boolean;
+  shippingCents: number;
+  pickupAddressText: string | null;
+  orderNotifyPhoneE164: string | null;
+};
+
+export async function getFulfillmentSettings(tenantId: string, storeId: string) {
+  return jsonFetch<StoreFulfillmentSettings>(
+    `/stores/fulfillment?${tenantStoreQuery(tenantId, storeId)}`,
+  );
+}
+
+export async function updateFulfillmentSettings(payload: {
+  tenantId: string;
+  storeId: string;
+  deliveryEnabled?: boolean;
+  shippingCents?: number;
+  pickupAddressText?: string | null;
+  orderNotifyPhoneE164?: string | null;
+}) {
+  return jsonFetch<StoreFulfillmentSettings>('/stores/fulfillment', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export type MerchantOrder = {
+  id: string;
+  couponCode: string | null;
+  productName: string;
+  amountCents: number;
+  shippingCents: number;
+  commissionCents: number;
+  fulfillmentMethod: string | null;
+  fulfillmentStatus: string | null;
+  trackingCode?: string | null;
+  mpPaymentId?: string | null;
+  status?: string;
+  shippingAddress: {
+    recipientName: string;
+    phoneE164: string;
+    cep: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  } | null;
+  paidLines: PublicOfferPaidLine[];
+  customerName: string;
+  paidAt: string | null;
+};
+
+export async function listMerchantOrders(
+  tenantId: string,
+  storeId: string,
+  fulfillmentStatus?: string,
+) {
+  const q = new URLSearchParams({ tenantId, storeId });
+  if (fulfillmentStatus) q.set('fulfillmentStatus', fulfillmentStatus);
+  return jsonFetch<MerchantOrder[]>(`/checkouts/orders?${q.toString()}`);
+}
+
+export async function updateOrderFulfillment(payload: {
+  checkoutId: string;
+  tenantId: string;
+  storeId: string;
+  status: 'ready' | 'shipped' | 'done';
+  trackingCode?: string;
+}) {
+  return jsonFetch<{ id: string; fulfillmentStatus: string }>(
+    `/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        tenantId: payload.tenantId,
+        storeId: payload.storeId,
+        status: payload.status,
+        ...(payload.trackingCode != null
+          ? { trackingCode: payload.trackingCode }
+          : {}),
+      }),
+    },
+  );
+}
+
+export async function cancelMerchantOrder(payload: {
+  checkoutId: string;
+  tenantId: string;
+  storeId: string;
+}) {
+  return jsonFetch<{ id: string; status: string; already: boolean }>(
+    `/checkouts/${encodeURIComponent(payload.checkoutId)}/cancel`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        tenantId: payload.tenantId,
+        storeId: payload.storeId,
+      }),
+    },
+  );
 }
 
 // ---- Clientes (API real) ----

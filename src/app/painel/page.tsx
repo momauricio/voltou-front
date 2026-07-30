@@ -15,7 +15,9 @@ import {
   type ProductPerf,
 } from '@/lib/mock-dashboard';
 import {
+  fetchAuthMe,
   getDashboardMetrics,
+  getStoredAccessToken,
   resolveTenantContext,
   type DashboardMetrics,
 } from '@/lib/api';
@@ -107,6 +109,18 @@ export default function PainelDashboardPage() {
   const [usingApi, setUsingApi] = useState(false);
   const [demoBanner, setDemoBanner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ownerFirstName, setOwnerFirstName] = useState('');
+
+  useEffect(() => {
+    const token = getStoredAccessToken();
+    if (!token) return;
+    void fetchAuthMe(token)
+      .then(({ user }) => {
+        const first = (user.ownerName || '').trim().split(/\s+/)[0] || '';
+        setOwnerFirstName(first);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -340,14 +354,14 @@ export default function PainelDashboardPage() {
   return (
     <div className="space-y-5 sm:space-y-8">
       <PageHeader
-        title="Início"
-        subtitle="Veja o que voltou — e o que ainda falta para disparar."
+        title={ownerFirstName ? `Olá, ${ownerFirstName}` : 'Dashboard'}
+        subtitle="Acompanhe o que está voltando — e o próximo passo para recuperar vendas."
         actions={
           <button
             type="button"
             onClick={handleExport}
             disabled={exporting}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-[var(--shadow-soft)] transition hover:bg-muted disabled:opacity-60"
           >
             {exporting ? 'Gerando PDF…' : 'Exportar PDF'}
           </button>
@@ -355,17 +369,57 @@ export default function PainelDashboardPage() {
       />
 
       {demoBanner && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-amber-900">
-            Você está vendo <span className="font-semibold">dados de demonstração</span>.
-            Importe sua base ou entre com a conta da loja para ver métricas reais.
-          </p>
+        <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              Seu painel ainda está vazio de vendas reais
+            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Importe a base da loja — é o caminho mais curto até a 1ª recuperação.
+            </p>
+          </div>
           <Link
-            href="/painel/clientes"
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-card px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
+            href="/painel/clientes?import=1"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
-            Importar dados
+            Importar agora
           </Link>
+        </div>
+      )}
+
+      {usingApi &&
+        !demoBanner &&
+        (merchantRecoveredCents ?? 0) === 0 &&
+        (salesConfirmed ?? 0) === 0 && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                Ainda sem a 1ª venda recuperada
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Siga o checklist: Mercado Pago → base → WhatsApp → 1º disparo.
+              </p>
+            </div>
+            <Link
+              href="/painel/campanhas"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+            >
+              Ir às campanhas
+            </Link>
+          </div>
+        )}
+
+      {usingApi && (merchantRecoveredCents ?? 0) > 0 && recentSales[0] && (
+        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950 shadow-[var(--shadow-soft)]">
+          <p className="font-semibold">
+            +{formatCurrencyCents(merchantRecoveredCents ?? 0)} recuperados no
+            período
+          </p>
+          <p className="mt-0.5 text-emerald-900/80">
+            Última: {recentSales[0].customerName} ·{' '}
+            {recentSales[0].productName} ·{' '}
+            {formatCurrencyCents(recentSales[0].merchantCents)}
+          </p>
         </div>
       )}
 

@@ -9,6 +9,7 @@ import {
   getStoreRules,
   listApiCustomers,
   listApiProducts,
+  listCampaigns,
   listWhatsappConnections,
   resolveTenantContext,
 } from '@/lib/api';
@@ -49,68 +50,77 @@ export function OnboardingWizard() {
         return;
       }
 
-      const [customers, products, rules, wa, mp, segments] = await Promise.all([
-        listApiCustomers(ctx.tenantId, ctx.storeId).catch(() => []),
-        listApiProducts(ctx.tenantId, ctx.storeId).catch(() => []),
-        getStoreRules(ctx.tenantId, ctx.storeId).catch(() => ({ rules: null })),
-        listWhatsappConnections(ctx.tenantId, ctx.storeId).catch(() => []),
-        getMercadoPagoConnection(ctx.tenantId, ctx.storeId).catch(() => ({
-          connected: false,
-        })),
-        getSegments(ctx.tenantId, ctx.storeId).catch(() => null),
-      ]);
+      const [customers, products, rules, wa, mp, segments, campaigns] =
+        await Promise.all([
+          listApiCustomers(ctx.tenantId, ctx.storeId).catch(() => []),
+          listApiProducts(ctx.tenantId, ctx.storeId).catch(() => []),
+          getStoreRules(ctx.tenantId, ctx.storeId).catch(() => ({
+            rules: null,
+          })),
+          listWhatsappConnections(ctx.tenantId, ctx.storeId).catch(() => []),
+          getMercadoPagoConnection(ctx.tenantId, ctx.storeId).catch(() => ({
+            connected: false,
+          })),
+          getSegments(ctx.tenantId, ctx.storeId).catch(() => null),
+          listCampaigns(ctx.tenantId, ctx.storeId).catch(() => []),
+        ]);
 
       if (cancelled) return;
 
       const waConnected = wa.some(
         (c) => c.uiStatus === 'Conectado' || c.status === 'WORKING',
       );
+      const hasSentCampaign = campaigns.some((c) => c.counts.sent > 0);
 
+      // Path crítico: MP → base → WA → 1º disparo (regras opcionais)
       setSteps([
         {
+          id: 'pagamento',
+          title: 'Conectar o Mercado Pago',
+          description: mp.connected
+            ? 'Checkout pronto para receber'
+            : 'Sem isso o cliente não consegue pagar o cupom',
+          href: '/painel/perfil',
+          done: Boolean(mp.connected),
+        },
+        {
           id: 'dados',
-          title: 'Importar dados da loja',
+          title: 'Trazer quem já compra de você',
           description:
             customers.length && products.length
-              ? 'Clientes e produtos ok'
+              ? 'Base pronta para reativar'
               : customers.length
-                ? 'Clientes ok — falta importar produtos'
+                ? 'Clientes ok — falta o catálogo'
                 : products.length
-                  ? 'Produtos ok — falta importar clientes'
-                  : 'Planilha de clientes e/ou produtos',
+                  ? 'Produtos ok — falta a lista de clientes'
+                  : 'Importe a planilha do PDV (clientes + produtos)',
           href: '/painel/clientes?import=1',
           done: customers.length > 0 && products.length > 0,
         },
         {
           id: 'whatsapp',
-          title: 'Conectar WhatsApp',
-          description: 'Canal das mensagens automáticas',
+          title: 'Abrir o canal de retorno',
+          description: 'Conecte o WhatsApp da loja',
           href: '/painel/whatsapp',
           done: waConnected,
         },
         {
+          id: 'campanha',
+          title: 'Disparar a 1ª recuperação',
+          description: hasSentCampaign
+            ? 'Primeiro lote enviado'
+            : segments && segments.readyToContact > 0
+              ? `${segments.readyToContact} clientes prontos — envie agora`
+              : 'Aprovar o primeiro lote e enviar',
+          href: '/painel/campanhas',
+          done: hasSentCampaign,
+        },
+        {
           id: 'regras',
-          title: 'Definir regras',
-          description: 'Horário e tom do disparo',
+          title: 'Afinar horário e desconto',
+          description: 'Tom, janela e teto de desconto',
           href: '/painel/regras',
           done: Boolean(rules.rules),
-        },
-        {
-          id: 'campanha',
-          title: 'Primeira campanha',
-          description:
-            segments && segments.readyToContact > 0
-              ? `${segments.readyToContact} prontos para disparar`
-              : 'Aprovar e enviar o primeiro lote',
-          href: '/painel/campanhas',
-          done: false,
-        },
-        {
-          id: 'pagamento',
-          title: 'Mercado Pago',
-          description: 'Checkout com split (opcional)',
-          href: '/painel/perfil',
-          done: Boolean(mp.connected),
           optional: true,
         },
       ]);
@@ -155,12 +165,12 @@ export function OnboardingWizard() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-              Configuração da loja
+              Até a 1ª venda recuperada
             </p>
             <h2 className="mt-0.5 text-base font-semibold tracking-tight text-foreground sm:text-lg">
               {remaining === 1
-                ? 'Último passo para disparar'
-                : `Faltam ${remaining} passos para recuperar vendas`}
+                ? 'Último passo — dispare a recuperação'
+                : `Faltam ${remaining} passos para voltar a vender`}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {doneRequired} de {required.length} essenciais · {progressPct}%

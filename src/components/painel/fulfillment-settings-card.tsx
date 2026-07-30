@@ -149,7 +149,8 @@ export function FulfillmentSettingsCard() {
 
       {showNotifyBanner && hasSession && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Pedidos só aparecem no painel até você cadastrar um WhatsApp de aviso.
+          Pedidos pagos já aparecem em Pedidos. Cadastre um WhatsApp de aviso
+          para receber alerta no celular a cada venda.
         </p>
       )}
 

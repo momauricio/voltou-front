@@ -165,7 +165,7 @@ export default function LojaOfferPage({
     offer.amountCents +
     selectedAddons.reduce((sum, a) => sum + a.amountCents, 0);
   const shippingCents =
-    fulfillmentMethod === 'delivery' ? offer.shippingCents : 0;
+    fulfillmentMethod === 'delivery' ? (offer.shippingCents ?? 0) : 0;
   const chargeCents = productsCents + shippingCents;
   const deliveryAvailable = offer.deliveryEnabled;
 
