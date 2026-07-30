@@ -1,0 +1,394 @@
+{
+  "name": "Create daily inactive repurchase campaigns",
+  "meta": {
+    "description": "Voltou-global daily job: lists every store with WORKING WhatsApp, resolves seller context, and creates an inativos campaign into the approval queue. Why: one orchestrator for all merchants instead of per-tenant copies; send still goes through CampaignsScheduler after approval."
+  },
+  "tags": [
+    { "name": "voltou" },
+    { "name": "vendedor" },
+    { "name": "campanha" }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup\n1. Import **Resolve store context** first\n2. Credential **Header Auth** `Voltou Internal API`: name `x-api-key`, value = `INTERNAL_API_KEY`\n3. Open **Fetch active stores**, **Fetch store context**, **Create inactive campaign** → select that credential\n4. Open **Resolve context via sub-workflow** → select workflow `Resolve store context`\n5. Test with **When clicking Test** before activating schedule\n\n`apiBase` default: `https://api.voltouapp.com`",
+        "height": 440,
+        "width": 440,
+        "color": 5
+      },
+      "id": "sticky-setup",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-560, 40]
+    },
+    {
+      "parameters": {
+        "content": "### Failure isolation\nOne store failing must not stop the loop. HTTP nodes use retry; continue on fail path logs skip reasons via Set nodes.",
+        "height": 200,
+        "width": 320,
+        "color": 3
+      },
+      "id": "sticky-errors",
+      "name": "Error notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-560, 520]
+    },
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 80]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Every day at 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 280]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "apiBase",
+              "value": "https://api.voltouapp.com",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "messageTemplate",
+              "value": "Oi {{nome}}! Faz um tempinho que você não aparece por aqui. Separei algo em {{produto}} pra você — se quiser, te mando o link {{link}}. Posso te ajudar?",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "segment",
+              "value": "inativos",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-globals",
+      "name": "Set global config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [260, 160]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.apiBase.replace(/\\/$/, '') + '/internal/stores/active' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "list-stores",
+      "name": "Fetch active stores",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "stores",
+        "options": {}
+      },
+      "id": "split-stores",
+      "name": "Split out stores",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [780, 160]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "storeId",
+              "value": "={{ $json.storeId }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "storeName",
+              "value": "={{ $json.storeName }}",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "apiBase",
+              "value": "={{ $('Set global config').item.json.apiBase }}",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "messageTemplate",
+              "value": "={{ $('Set global config').item.json.messageTemplate }}",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "segment",
+              "value": "={{ $('Set global config').item.json.segment }}",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "campaignName",
+              "value": "={{ 'Recompra inativos ' + $now.setZone($json.timezone || 'America/Sao_Paulo').toFormat('yyyy-MM-dd') + ' · ' + $json.storeName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prep-store",
+      "name": "Prep store item",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1040, 160]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.apiBase.replace(/\\/$/, '') + '/internal/stores/context' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            },
+            {
+              "name": "storeId",
+              "value": "={{ $json.storeId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "fetch-context",
+      "name": "Fetch store context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
+      "notes": "Inline twin of Resolve store context so import works without wiring Execute Workflow. Prefer calling the sub-workflow once imported."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wa",
+              "leftValue": "={{ $json.whatsapp?.connected === true && $json.window?.open === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-eligible",
+      "name": "WhatsApp + window open?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1560, 160]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "skipped",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "s2",
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "storeId",
+              "value": "={{ $json.storeId }}",
+              "type": "string"
+            },
+            {
+              "id": "s4",
+              "name": "reason",
+              "value": "={{ !$json.whatsapp?.connected ? 'whatsapp_not_connected' : ($json.window?.open === false ? 'outside_store_window' : 'context_unavailable') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "skip",
+      "name": "Skip store",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1840, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prep store item').item.json.apiBase.replace(/\\/$/, '') + '/internal/campaigns' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tenantId: $json.tenantId, storeId: $json.storeId, name: $('Prep store item').item.json.campaignName, segment: $('Prep store item').item.json.segment, messageTemplate: $('Prep store item').item.json.messageTemplate }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-campaign",
+      "name": "Create inactive campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1840, 40],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "ok",
+              "value": "={{ Boolean($json.id) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "r2",
+              "name": "campaignId",
+              "value": "={{ $json.id || null }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "messagesCreated",
+              "value": "={{ $json.messagesCreated ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "r4",
+              "name": "tenantId",
+              "value": "={{ $('Prep store item').item.json.tenantId }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "storeId",
+              "value": "={{ $('Prep store item').item.json.storeId }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "storeName",
+              "value": "={{ $('Prep store item').item.json.storeName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "summarize",
+      "name": "Summarize store result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2120, 40]
+    }
+  ],
+  "connections": {
+    "When clicking Test": {
+      "main": [[{ "node": "Set global config", "type": "main", "index": 0 }]]
+    },
+    "Every day at 09:00": {
+      "main": [[{ "node": "Set global config", "type": "main", "index": 0 }]]
+    },
+    "Set global config": {
+      "main": [[{ "node": "Fetch active stores", "type": "main", "index": 0 }]]
+    },
+    "Fetch active stores": {
+      "main": [[{ "node": "Split out stores", "type": "main", "index": 0 }]]
+    },
+    "Split out stores": {
+      "main": [[{ "node": "Prep store item", "type": "main", "index": 0 }]]
+    },
+    "Prep store item": {
+      "main": [[{ "node": "Fetch store context", "type": "main", "index": 0 }]]
+    },
+    "Fetch store context": {
+      "main": [[{ "node": "WhatsApp + window open?", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp + window open?": {
+      "main": [
+        [{ "node": "Create inactive campaign", "type": "main", "index": 0 }],
+        [{ "node": "Skip store", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create inactive campaign": {
+      "main": [[{ "node": "Summarize store result", "type": "main", "index": 0 }]]
+    }
+  }
+}

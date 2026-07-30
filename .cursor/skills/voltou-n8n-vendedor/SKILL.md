@@ -42,18 +42,23 @@ Todo fluxo carrega e propaga `tenantId` + `storeId`.
 
 ## Fonte da verdade da loja
 
-Antes de gerar mensagem ou oferecer desconto, ler regras via API (`GET /stores/rules?tenantId&storeId`):
+Antes de gerar mensagem ou oferecer desconto, ler regras via API:
+
+- Painel / JWT: `GET /stores/rules?tenantId&storeId`
+- Motor global (n8n): `GET /internal/stores/context?tenantId&storeId` com `x-api-key`
 
 | Campo | Uso no vendedor |
 |---|---|
 | `sobreNegocio` | Contexto do negócio no system prompt |
 | `personalidade` | Tom (amigável, direto, estilo balcão) |
 | `instrucoesExtras` | Hard rules (ex.: não citar concorrentes; escalar reclamação) |
-| `horaInicio` / `horaFim` / `diasAtivos` | Janela de envio — fora disso, agendar ou não enviar |
+| `horaInicio` / `horaFim` / `diasAtivos` | Janela de atendimento (outbound + inbound futuro) |
 | `followUpDias` | Timing de recompra / segmento inativos |
 | `descontoPadrao`, `margemMaxima`, `maxDescontoUmProduto`, `maxDescontoDoisOuMais` | Teto de oferta |
 | `aniversario` | Campanhas de aniversário on/off |
 | `cupons` | Códigos permitidos / validade |
+
+Lista multi-loja: `GET /internal/stores/active` (WA `WORKING`). Criar campanha máquina: `POST /internal/campaigns`.
 
 Se a API não responder regras, **não improvisar desconto** — falhar com erro claro ou usar só mensagem sem oferta.
 

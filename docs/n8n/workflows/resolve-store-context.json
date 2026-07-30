@@ -1,0 +1,88 @@
+{
+  "name": "Resolve store context",
+  "meta": {
+    "description": "Loads Voltou seller context for one physical store (rules, WhatsApp, send window). Stateless sub-workflow reused by the daily orchestrator and later by inbound chat."
+  },
+  "tags": [
+    { "name": "subworkflow" },
+    { "name": "voltou" },
+    { "name": "vendedor" }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### Inputs\n`tenantId`, `storeId`\n\n### Auth\nHeader Auth credential: header `x-api-key` = `INTERNAL_API_KEY` from voltou-api.\n\n### Output\nFull context JSON from `GET /internal/stores/context`.",
+        "height": 300,
+        "width": 360,
+        "color": 5
+      },
+      "id": "sticky-sub",
+      "name": "Contract",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-400, 80]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            { "name": "tenantId" },
+            { "name": "storeId" },
+            {
+              "name": "apiBase",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "When called by another workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 160]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ ($json.apiBase || 'https://api.voltouapp.com').replace(/\\/$/, '') + '/internal/stores/context' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            },
+            {
+              "name": "storeId",
+              "value": "={{ $json.storeId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "fetch-context",
+      "name": "Fetch store context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "Create Header Auth credential named Voltou Internal API (name=x-api-key, value=INTERNAL_API_KEY)."
+    }
+  ],
+  "connections": {
+    "When called by another workflow": {
+      "main": [[{ "node": "Fetch store context", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -73,17 +73,17 @@ Ao automatizar envio em massa no n8n, alinhar com o estado de aprovação do pro
 
 ## Padrões de workflow sugeridos
 
-### A — Recompra pós-venda
+### A — Recompra pós-venda (multi-loja)
 
-Trigger (venda registrada / schedule) → resolve store + rules → elegível? (opt-out, janela, follow-up) → draft mensagem → (aprovação se aplicável) → send WA vendas → opcional criar/enviar link oferta.
+Schedule global → `GET /internal/stores/active` → por loja `GET /internal/stores/context` → se WA + janela → `POST /internal/campaigns` (`inativos`). Importável: `docs/n8n/workflows/`.
 
 ### B — Campanha por segmento
 
 Trigger manual/webhook painel → carregar segmento → filtrar → draft em lote → aprovação → send com rate limit / batch (`n8n-loops-official`).
 
-### C — Agente conversacional
+### C — Agente conversacional (próximo)
 
-WA inbound (vendas) → agent com tools API → respeitar tetos → emitir link checkout → log outcome.
+WA inbound (vendas) → reutilizar `Resolve store context` → agent com tools API → respeitar tetos → emitir link checkout → log outcome.
 
 ### D — Aviso de pedido
 
