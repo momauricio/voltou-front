@@ -3,9 +3,15 @@ import Link from 'next/link';
 type BrandLogoProps = {
   href?: string;
   className?: string;
+  /** Landing uses Voltou without the period; painel keeps the brand mark. */
+  withPeriod?: boolean;
 };
 
-export function BrandLogo({ href = '/', className = '' }: BrandLogoProps) {
+export function BrandLogo({
+  href = '/',
+  className = '',
+  withPeriod = true,
+}: BrandLogoProps) {
   const content = (
     <span className={`inline-flex max-w-full items-center gap-2 ${className}`}>
       <span
@@ -25,7 +31,8 @@ export function BrandLogo({ href = '/', className = '' }: BrandLogoProps) {
         </svg>
       </span>
       <span className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-        Voltou<span className="text-primary">.</span>
+        Voltou
+        {withPeriod ? <span className="text-primary">.</span> : null}
       </span>
     </span>
   );

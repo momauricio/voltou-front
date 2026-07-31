@@ -4,19 +4,19 @@ export function LandingNav() {
   return (
     <header className="absolute inset-x-0 top-0 z-50">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo />
+        <BrandLogo withPeriod={false} />
         <nav className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground sm:gap-3">
           <a
-            href="#como-funciona"
+            href="#fluxo"
             className="hidden px-2 py-2 hover:text-foreground sm:inline"
           >
             Como funciona
           </a>
           <a
-            href="#resultado"
+            href="#prova"
             className="hidden px-2 py-2 hover:text-foreground sm:inline"
           >
-            Resultado
+            Prova
           </a>
           <a
             href="#para-quem"

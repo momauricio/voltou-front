@@ -5,18 +5,23 @@ import { useInView } from '@/components/landing/use-in-view';
 const STEPS = [
   {
     n: '1',
-    title: 'Cadastra no balcão',
-    body: 'Nome, WhatsApp e o que comprou ou quis. 30 segundos.',
+    title: 'Cadastra',
+    body: 'Nome, WhatsApp e o que comprou (ou quis). 30 segundos no balcão.',
   },
   {
     n: '2',
-    title: 'A IA vende no timing certo',
-    body: 'Cupom personalizado, ofertas e upsell. Recupera valor que ia embora.',
+    title: 'A IA escolhe e vende',
+    body: 'Produto certo + cupom personalizado, no timing certo.',
   },
   {
     n: '3',
-    title: 'O dinheiro cai na sua conta',
-    body: 'Cliente compra, você recebe na hora — e o aviso do pedido pra entregar.',
+    title: 'Cliente paga no link',
+    body: 'Compra pelo WhatsApp da loja — não de número estranho.',
+  },
+  {
+    n: '4',
+    title: 'Você recebe + aviso',
+    body: 'Dinheiro na conta e notificação pra preparar o envio.',
   },
 ];
 
@@ -25,42 +30,36 @@ export function LandingMechanism() {
 
   return (
     <section
-      id="como-funciona"
+      id="fluxo"
       ref={ref}
       className="scroll-mt-20 border-t border-border/60 bg-background px-4 py-20 sm:px-6 sm:py-28"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
-          <p
-            className={`text-xs font-semibold tracking-[0.16em] text-muted-foreground transition duration-700 ${
-              inView ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            COMO FUNCIONA
-          </p>
           <h2
-            className={`mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl transition duration-700 delay-75 ${
+            className={`text-3xl font-bold tracking-tight text-foreground sm:text-4xl transition duration-700 ${
               inView
                 ? 'translate-y-0 opacity-100'
                 : 'translate-y-4 opacity-0'
             }`}
           >
-            Três passos. A Voltou. vende; você atende o balcão.
+            Assim recuperamos mais vendas pra você
           </h2>
           <p
             className={`mt-4 text-muted-foreground transition duration-700 delay-100 ${
               inView ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
             }`}
           >
-            Feito pro balcão — não pra ficar logado no computador.
+            Do balcão ao dinheiro na conta — sem você precisar atender o
+            WhatsApp o dia inteiro.
           </p>
         </div>
 
-        <ol className="mt-14 grid gap-10 sm:mt-16 sm:grid-cols-3 sm:gap-8">
+        <ol className="mt-14 grid gap-10 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8">
           {STEPS.map((step, i) => (
             <li
               key={step.n}
-              className={`text-center sm:text-left transition duration-700 ${
+              className={`relative text-center sm:text-left transition duration-700 ${
                 inView
                   ? 'translate-y-0 opacity-100'
                   : 'translate-y-6 opacity-0'

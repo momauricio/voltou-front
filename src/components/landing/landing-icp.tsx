@@ -19,7 +19,7 @@ export function LandingIcp() {
               : 'translate-y-4 opacity-0'
           }`}
         >
-          Feito para quem vende no balcão
+          Feito pra loja física que perde a segunda venda
         </h2>
         <p
           className={`mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg transition duration-700 delay-100 ${
@@ -28,9 +28,8 @@ export function LandingIcp() {
               : 'translate-y-3 opacity-0'
           }`}
         >
-          Loja física sem braço pra chase depois da venda. Quem já comprou ou
-          demonstrou interesse — e ninguém atende de forma personalizada — é
-          dinheiro na mesa. A Voltou. vende por você no WhatsApp.
+          Quem já comprou (ou quis comprar) e ninguém atende de novo — é venda
+          perdida todo dia. A Voltou recupera isso no WhatsApp da loja.
         </p>
       </div>
 
@@ -52,14 +51,13 @@ export function LandingIcp() {
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Já fala com cliente no WhatsApp Business
+              Tem WhatsApp do cliente
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Não tem equipe pra chase pós-venda — e deixa recompra e upsell pra
-              depois
+              Não tem equipe pra chase pós-venda
             </li>
           </ul>
         </div>
@@ -77,19 +75,19 @@ export function LandingIcp() {
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
-              Só vende em marketplace e não tem o contato do cliente
+              Só marketplace sem o contato do cliente
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-0.5" aria-hidden>
+                —
+              </span>
+              Quer blast genérico em massa
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
               Precisa de ERP, estoque avançado ou PDV fiscal
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-0.5" aria-hidden>
-                —
-              </span>
-              Quer disparar milhares de mensagens genéricas por dia
             </li>
           </ul>
         </div>

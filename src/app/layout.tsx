@@ -11,18 +11,18 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.voltouapp.com"),
   title: {
-    default: "Vendedor WhatsApp para loja física | Voltou.",
-    template: "%s | Voltou.",
+    default: "Recupere as vendas que a loja perde todo dia | Voltou",
+    template: "%s | Voltou",
   },
   description:
-    "Recupere quem já comprou ou quis comprar — e venda mais no WhatsApp com cupom, oferta e upsell. Só comissão em venda recuperada.",
+    "A Voltou recupera clientes que compraram só uma vez: a IA escolhe o produto, personaliza o cupom e fecha no WhatsApp da loja. Sem mensalidade — só comissão.",
   keywords: [
-    "vendedor whatsapp loja física",
-    "recuperar vendas whatsapp",
-    "upsell whatsapp loja",
+    "recuperar vendas loja física",
+    "recompra whatsapp loja",
     "cupom personalizado whatsapp",
-    "recompra e upsell loja de bairro",
+    "upsell loja de bairro",
     "comissão venda recuperada",
+    "whatsapp da loja",
   ],
   alternates: {
     canonical: "/",
@@ -31,16 +31,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     url: "https://www.voltouapp.com",
-    siteName: "Voltou.",
-    title: "Vendedor WhatsApp para loja física | Voltou.",
+    siteName: "Voltou",
+    title: "Recupere as vendas que a loja perde todo dia | Voltou",
     description:
-      "Recupere quem já comprou ou quis comprar — e venda mais. Só comissão quando o dinheiro entra.",
+      "IA que recupera a segunda venda no WhatsApp da loja. Sem mensalidade — só comissão.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vendedor WhatsApp para loja física | Voltou.",
+    title: "Recupere as vendas que a loja perde todo dia | Voltou",
     description:
-      "Recupere quem já comprou ou quis comprar — e venda mais. Só comissão quando o dinheiro entra.",
+      "IA que recupera a segunda venda no WhatsApp da loja. Sem mensalidade — só comissão.",
   },
   robots: {
     index: true,
@@ -63,12 +63,12 @@ export default function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Voltou.",
+    name: "Voltou",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: "https://www.voltouapp.com",
     description:
-      "Recupere quem já comprou ou quis comprar — e venda mais no WhatsApp com cupom, oferta e upsell. Só comissão em venda recuperada.",
+      "A Voltou recupera clientes que compraram só uma vez: a IA escolhe o produto, personaliza o cupom e fecha no WhatsApp da loja. Sem mensalidade — só comissão.",
     offers: {
       "@type": "Offer",
       price: "0",

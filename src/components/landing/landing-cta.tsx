@@ -21,8 +21,8 @@ export function LandingCta() {
           cancela.
         </h2>
         <p className="relative mx-auto mt-4 max-w-md text-sm text-background/70">
-          Você só paga quando a gente recupera. Sem cartão pra criar a conta.
-          Você controla o que sai no WhatsApp.
+          Sem mensalidade. Sem cartão pra criar a conta. Só comissão quando a
+          venda entrar.
         </p>
         <a
           href="/entrar?tab=criar"
