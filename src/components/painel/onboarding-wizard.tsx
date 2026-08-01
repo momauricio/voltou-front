@@ -80,7 +80,7 @@ export function OnboardingWizard() {
           description: mp.connected
             ? 'Checkout pronto para receber'
             : 'Sem isso o cliente não consegue pagar o cupom',
-          href: '/painel/perfil',
+          href: '/painel/loja/pagamentos',
           done: Boolean(mp.connected),
         },
         {

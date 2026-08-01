@@ -16,28 +16,28 @@ function MpCallbackInner() {
 
     if (error) {
       router.replace(
-        `/painel/perfil?mp=error&msg=${encodeURIComponent(error)}`,
+        `/painel/loja/pagamentos?mp=error&msg=${encodeURIComponent(error)}`,
       );
       return;
     }
 
     if (!code || !state) {
       router.replace(
-        `/painel/perfil?mp=error&msg=${encodeURIComponent('Código OAuth ausente.')}`,
+        `/painel/loja/pagamentos?mp=error&msg=${encodeURIComponent('Código OAuth ausente.')}`,
       );
       return;
     }
 
     void completeMercadoPagoOAuth(code, state)
       .then(() => {
-        router.replace('/painel/perfil?mp=connected');
+        router.replace('/painel/loja/pagamentos?mp=connected');
       })
       .catch((err) => {
         const msg = encodeURIComponent(
           err instanceof Error ? err.message : 'Falha no callback OAuth.',
         );
         setMessage('Não foi possível concluir a conexão.');
-        router.replace(`/painel/perfil?mp=error&msg=${msg}`);
+        router.replace(`/painel/loja/pagamentos?mp=error&msg=${msg}`);
       });
   }, [searchParams, router]);
 

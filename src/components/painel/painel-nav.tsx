@@ -24,12 +24,6 @@ type NavItem = {
   mobilePrimary?: boolean;
 };
 
-type NavGroup = {
-  id: string;
-  label: string;
-  items: NavItem[];
-};
-
 const iconClass = 'h-5 w-5 shrink-0';
 
 const iconProps = {
@@ -43,136 +37,162 @@ const iconProps = {
   'aria-hidden': true as const,
 };
 
+const gearIcon = (
+  <svg {...iconProps}>
+    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.4.7 1.1 1.1 1.9 1.1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+  </svg>
+);
+
 /**
- * RCD attention hierarchy: lead with the activation path
- * (campanhas / WhatsApp) after the home overview — not a flat feature list.
+ * Top-level order: Dashboard → Sua loja → Campanhas → Clientes →
+ * Produtos → Pedidos → WhatsApp. Store settings live under "Sua loja".
  */
-const NAV_GROUPS: NavGroup[] = [
+const PRIMARY_ITEMS: NavItem[] = [
   {
-    id: 'principal',
-    label: 'Principal',
-    items: [
-      {
-        href: '/painel',
-        label: 'Dashboard',
-        short: 'Início',
-        exact: true,
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <rect x="3" y="3" width="7" height="9" rx="1" />
-            <rect x="14" y="3" width="7" height="5" rx="1" />
-            <rect x="14" y="12" width="7" height="9" rx="1" />
-            <rect x="3" y="16" width="7" height="5" rx="1" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/campanhas',
-        label: 'Campanhas',
-        short: 'Camp.',
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <path d="m3 3 18 9-18 9 4-9-4-9Z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/clientes',
-        label: 'Clientes',
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-            <circle cx="10" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/produtos',
-        label: 'Produtos',
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <path d="M21 8 12 3 3 8l9 5 9-5Z" />
-            <path d="M3 8v9l9 5 9-5V8" />
-            <path d="M12 13v9" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/pedidos',
-        label: 'Pedidos',
-        short: 'Pedidos',
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <path d="M6 2h12v4H6z" />
-            <path d="M4 6h16l-1 14H5L4 6Z" />
-            <path d="M9 10h6" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/whatsapp',
-        label: 'WhatsApp',
-        short: 'Zap',
-        mobilePrimary: true,
-        icon: (
-          <svg
-            viewBox="0 0 24 24"
-            className={iconClass}
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.95.53 3.78 1.46 5.36L2 22l4.98-1.55a10.05 10.05 0 0 0 5.06 1.37h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2Zm5.76 14.09c-.24.67-1.4 1.28-1.93 1.36-.5.08-1.12.11-1.81-.11-.42-.14-.95-.31-1.64-.6-2.88-1.24-4.76-4.15-4.9-4.34-.15-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.58-.36.78-.36h.56c.18 0 .42-.07.66.5.24.58.82 2 .89 2.15.07.15.12.32.02.52-.1.2-.15.32-.29.5-.15.17-.3.35-.43.47-.15.13-.3.28-.13.55.18.27.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.51.3.15.48.13.66-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.72.81 2.01.96.3.15.5.22.57.34.08.13.08.74-.16 1.41Z" />
-          </svg>
-        ),
-      },
-    ],
+    href: '/painel',
+    label: 'Dashboard',
+    short: 'Início',
+    exact: true,
+    mobilePrimary: true,
+    icon: (
+      <svg {...iconProps}>
+        <rect x="3" y="3" width="7" height="9" rx="1" />
+        <rect x="14" y="3" width="7" height="5" rx="1" />
+        <rect x="14" y="12" width="7" height="9" rx="1" />
+        <rect x="3" y="16" width="7" height="5" rx="1" />
+      </svg>
+    ),
   },
   {
-    id: 'conta',
-    label: 'Conta',
-    items: [
-      {
-        href: '/painel/regras',
-        label: 'Regras',
-        icon: (
-          <svg {...iconProps}>
-            <path d="M4 6h10" />
-            <path d="M4 12h6" />
-            <path d="M4 18h13" />
-            <circle cx="18" cy="6" r="2" />
-            <circle cx="13" cy="18" r="2" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/perfil',
-        label: 'Configurações',
-        short: 'Perfil',
-        icon: (
-          <svg {...iconProps}>
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20a8 8 0 0 1 16 0" />
-          </svg>
-        ),
-      },
-    ],
+    href: '/painel/campanhas',
+    label: 'Campanhas',
+    short: 'Camp.',
+    mobilePrimary: true,
+    icon: (
+      <svg {...iconProps}>
+        <path d="m3 3 18 9-18 9 4-9-4-9Z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/clientes',
+    label: 'Clientes',
+    mobilePrimary: true,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+        <circle cx="10" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/produtos',
+    label: 'Produtos',
+    mobilePrimary: true,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M21 8 12 3 3 8l9 5 9-5Z" />
+        <path d="M3 8v9l9 5 9-5V8" />
+        <path d="M12 13v9" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/pedidos',
+    label: 'Pedidos',
+    short: 'Pedidos',
+    mobilePrimary: true,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M6 2h12v4H6z" />
+        <path d="M4 6h16l-1 14H5L4 6Z" />
+        <path d="M9 10h6" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/whatsapp',
+    label: 'WhatsApp',
+    short: 'Zap',
+    mobilePrimary: true,
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        className={iconClass}
+        fill="currentColor"
+        aria-hidden
+      >
+        <path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.95.53 3.78 1.46 5.36L2 22l4.98-1.55a10.05 10.05 0 0 0 5.06 1.37h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2Zm5.76 14.09c-.24.67-1.4 1.28-1.93 1.36-.5.08-1.12.11-1.81-.11-.42-.14-.95-.31-1.64-.6-2.88-1.24-4.76-4.15-4.9-4.34-.15-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.58-.36.78-.36h.56c.18 0 .42-.07.66.5.24.58.82 2 .89 2.15.07.15.12.32.02.52-.1.2-.15.32-.29.5-.15.17-.3.35-.43.47-.15.13-.3.28-.13.55.18.27.79 1.3 1.7 2.11 1.17 1.04 2.15 1.36 2.45 1.51.3.15.48.13.66-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.72.81 2.01.96.3.15.5.22.57.34.08.13.08.74-.16 1.41Z" />
+      </svg>
+    ),
   },
 ];
 
-const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
+const SUA_LOJA_ITEMS: NavItem[] = [
+  {
+    href: '/painel/regras',
+    label: 'Regras',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M4 6h10" />
+        <path d="M4 12h6" />
+        <path d="M4 18h13" />
+        <circle cx="18" cy="6" r="2" />
+        <circle cx="13" cy="18" r="2" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/loja/pagamentos',
+    label: 'Pagamentos e Comissões',
+    short: 'Pagamentos',
+    icon: (
+      <svg {...iconProps}>
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <path d="M2 10h20" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/loja/entregas',
+    label: 'Entregas e Pedidos',
+    short: 'Entregas',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M3 7h11v10H3z" />
+        <path d="M14 10h4l3 3v4h-7v-7Z" />
+        <circle cx="7" cy="19" r="2" />
+        <circle cx="18" cy="19" r="2" />
+      </svg>
+    ),
+  },
+  {
+    href: '/painel/loja/checkout',
+    label: 'Checkout',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M4 7h16v12H4z" />
+        <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+      </svg>
+    ),
+  },
+];
+
+const CONFIG_HREF = '/painel/perfil';
 
 function isActive(pathname: string | null, item: NavItem) {
   if (!pathname) return false;
   return item.exact
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+function isSuaLojaPath(pathname: string | null) {
+  if (!pathname) return false;
+  return SUA_LOJA_ITEMS.some((item) => isActive(pathname, item));
 }
 
 function NavLink({
@@ -184,7 +204,7 @@ function NavLink({
   item: NavItem;
   pathname: string | null;
   onNavigate?: () => void;
-  variant?: 'sidebar' | 'mobile';
+  variant?: 'sidebar' | 'mobile' | 'sub';
 }) {
   const active = isActive(pathname, item);
 
@@ -211,6 +231,29 @@ function NavLink({
     );
   }
 
+  if (variant === 'sub') {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        className={`flex items-center gap-3 rounded-xl px-3 py-2 pl-10 text-sm font-medium transition ${
+          active
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+        }`}
+      >
+        <span
+          className={`inline-flex h-5 w-5 items-center justify-center [&>svg]:h-[1.05rem] [&>svg]:w-[1.05rem] ${
+            active ? 'text-primary-foreground' : 'text-muted-foreground'
+          }`}
+        >
+          {item.icon}
+        </span>
+        <span className="truncate">{item.label}</span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={item.href}
@@ -230,6 +273,75 @@ function NavLink({
       </span>
       {item.label}
     </Link>
+  );
+}
+
+function SuaLojaNav({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string | null;
+  onNavigate?: () => void;
+}) {
+  const onSuaLoja = isSuaLojaPath(pathname);
+  const [open, setOpen] = useState(onSuaLoja);
+
+  useEffect(() => {
+    if (onSuaLoja) setOpen(true);
+  }, [onSuaLoja]);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+          onSuaLoja && !open
+            ? 'bg-accent text-primary'
+            : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+        }`}
+      >
+        <span
+          className={`inline-flex h-5 w-5 items-center justify-center [&>svg]:h-[1.15rem] [&>svg]:w-[1.15rem] ${
+            onSuaLoja ? 'text-primary' : 'text-muted-foreground'
+          }`}
+        >
+          <svg {...iconProps}>
+            <path d="M3 10.5 12 4l9 6.5" />
+            <path d="M5 10v9h14v-9" />
+            <path d="M10 19v-5h4v5" />
+          </svg>
+        </span>
+        <span className="flex-1 text-left">Sua loja</span>
+        <svg
+          viewBox="0 0 24 24"
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition ${
+            open ? 'rotate-180' : ''
+          }`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open ? (
+        <ul className="mt-0.5 space-y-0.5">
+          {SUA_LOJA_ITEMS.map((item) => (
+            <li key={item.href}>
+              <NavLink
+                item={item}
+                pathname={pathname}
+                onNavigate={onNavigate}
+                variant="sub"
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
@@ -258,6 +370,10 @@ export function PainelSidebar() {
   }
 
   const initial = (ownerName || storeName || 'V').trim().charAt(0).toUpperCase();
+  const configActive = Boolean(pathname?.startsWith(CONFIG_HREF));
+
+  // Dashboard first, then Sua loja, then the rest of primary items.
+  const [dashboard, ...restPrimary] = PRIMARY_ITEMS;
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-[16.5rem] shrink-0 flex-col border-r border-border/80 bg-card lg:flex">
@@ -266,10 +382,7 @@ export function PainelSidebar() {
           <BrandLogo href="/painel" />
         </div>
 
-        <Link
-          href="/painel/perfil"
-          className="mb-5 flex items-center gap-3 rounded-2xl border border-border/80 bg-background/60 px-3 py-2.5 transition hover:border-primary/30 hover:bg-accent/40"
-        >
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-border/80 bg-background/60 px-3 py-2.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
             {initial}
           </span>
@@ -281,33 +394,20 @@ export function PainelSidebar() {
               Lojista
             </span>
           </span>
-          <svg
-            viewBox="0 0 24 24"
-            className="h-4 w-4 shrink-0 text-muted-foreground"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </Link>
+        </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto" aria-label="Navegação principal">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.id}>
-              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {group.label}
-              </p>
-              <ul className="space-y-0.5">
-                {group.items.map((item) => (
-                  <li key={item.href}>
-                    <NavLink item={item} pathname={pathname} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <nav className="flex-1 space-y-0.5 overflow-y-auto" aria-label="Navegação principal">
+          <ul className="space-y-0.5">
+            <li>
+              <NavLink item={dashboard} pathname={pathname} />
+            </li>
+            <SuaLojaNav pathname={pathname} />
+            {restPrimary.map((item) => (
+              <li key={item.href}>
+                <NavLink item={item} pathname={pathname} />
+              </li>
+            ))}
+          </ul>
         </nav>
 
         <div className="mt-3 border-t border-border/80 pt-3">
@@ -325,6 +425,18 @@ export function PainelSidebar() {
                 </span>
               ) : null}
             </span>
+            <Link
+              href={CONFIG_HREF}
+              aria-label="Configurações"
+              title="Configurações"
+              className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition [&>svg]:h-4 [&>svg]:w-4 ${
+                configActive
+                  ? 'bg-accent text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {gearIcon}
+            </Link>
           </div>
           <button
             type="button"
@@ -350,6 +462,7 @@ export function PainelMobileChrome() {
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [suaLojaOpen, setSuaLojaOpen] = useState(isSuaLojaPath(pathname));
 
   useEffect(() => {
     setMounted(true);
@@ -357,6 +470,10 @@ export function PainelMobileChrome() {
 
   useEffect(() => {
     setMoreOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isSuaLojaPath(pathname)) setSuaLojaOpen(true);
   }, [pathname]);
 
   useEffect(() => {
@@ -378,12 +495,11 @@ export function PainelMobileChrome() {
     router.push('/entrar');
   }
 
-  const mobilePrimary = ALL_ITEMS.filter((i) => i.mobilePrimary);
+  const mobilePrimary = PRIMARY_ITEMS.filter((i) => i.mobilePrimary);
   const bottomItems = mobilePrimary.slice(0, 4);
-  const moreItems = [
-    ...mobilePrimary.slice(4),
-    ...ALL_ITEMS.filter((i) => !i.mobilePrimary),
-  ];
+  const overflowPrimary = mobilePrimary.slice(4);
+  const configActive = Boolean(pathname?.startsWith(CONFIG_HREF));
+  const suaLojaActive = isSuaLojaPath(pathname);
 
   const mobileChrome =
     mounted &&
@@ -406,12 +522,16 @@ export function PainelMobileChrome() {
                 onClick={() => setMoreOpen(true)}
                 aria-expanded={moreOpen}
                 className={`flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[10px] font-medium active:bg-muted ${
-                  moreOpen ? 'text-primary' : 'text-muted-foreground'
+                  moreOpen || suaLojaActive || overflowPrimary.some((i) => isActive(pathname, i))
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
                 }`}
               >
                 <span
                   className={`inline-flex h-8 w-8 items-center justify-center rounded-xl ${
-                    moreOpen ? 'bg-accent' : ''
+                    moreOpen || suaLojaActive || overflowPrimary.some((i) => isActive(pathname, i))
+                      ? 'bg-accent'
+                      : ''
                   }`}
                 >
                   <svg {...iconProps} className="h-[1.15rem] w-[1.15rem]">
@@ -456,7 +576,7 @@ export function PainelMobileChrome() {
                 </button>
               </div>
               <ul className="space-y-1">
-                {moreItems.map((item) => (
+                {overflowPrimary.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
@@ -474,6 +594,80 @@ export function PainelMobileChrome() {
                     </Link>
                   </li>
                 ))}
+
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setSuaLojaOpen((v) => !v)}
+                    aria-expanded={suaLojaOpen}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                      suaLojaActive
+                        ? 'bg-accent text-primary'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span className="inline-flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                      <svg {...iconProps}>
+                        <path d="M3 10.5 12 4l9 6.5" />
+                        <path d="M5 10v9h14v-9" />
+                        <path d="M10 19v-5h4v5" />
+                      </svg>
+                    </span>
+                    <span className="flex-1 text-left">Sua loja</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      className={`h-4 w-4 shrink-0 text-muted-foreground transition ${
+                        suaLojaOpen ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                  {suaLojaOpen ? (
+                    <ul className="mt-1 space-y-1 border-l border-border/80 ml-5 pl-2">
+                      {SUA_LOJA_ITEMS.map((item) => (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setMoreOpen(false)}
+                            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                              isActive(pathname, item)
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-foreground hover:bg-muted'
+                            }`}
+                          >
+                            <span className="inline-flex h-5 w-5 items-center justify-center [&>svg]:h-[1.05rem] [&>svg]:w-[1.05rem]">
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+
+                <li>
+                  <Link
+                    href={CONFIG_HREF}
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                      configActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span className="inline-flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                      {gearIcon}
+                    </span>
+                    Configurações
+                  </Link>
+                </li>
+
                 <li>
                   <button
                     type="button"
@@ -503,18 +697,15 @@ export function PainelMobileChrome() {
           <BrandLogo href="/painel" className="min-w-0 shrink" />
           <div className="ml-auto">
             <Link
-              href="/painel/perfil"
+              href={CONFIG_HREF}
               aria-label="Configurações"
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition ${
-                pathname?.startsWith('/painel/perfil')
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition [&>svg]:h-5 [&>svg]:w-5 ${
+                configActive
                   ? 'bg-accent text-primary'
                   : 'text-muted-foreground hover:bg-muted'
               }`}
             >
-              <svg {...iconProps}>
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20a8 8 0 0 1 16 0" />
-              </svg>
+              {gearIcon}
             </Link>
           </div>
         </div>

@@ -1,10 +1,7 @@
 'use client';
 
-import { FormEvent, Suspense, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
-import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
-import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
-import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
 import { changePassword, getStoredAccessToken } from '@/lib/api';
 
 const fieldClass =
@@ -62,17 +59,9 @@ export default function PerfilPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
-        title="Perfil"
-        subtitle="Gerencie a conta da loja, pagamentos, entrega, aparência do checkout e a segurança do acesso."
+        title="Configurações"
+        subtitle="Gerencie a segurança e o acesso da conta da loja."
       />
-
-      <Suspense fallback={null}>
-        <PaymentProvidersCard />
-      </Suspense>
-
-      <FulfillmentSettingsCard />
-
-      <CheckoutBrandingCard />
 
       <section className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] lg:mx-0">
         <h2 className="text-base font-semibold text-foreground">Trocar senha</h2>

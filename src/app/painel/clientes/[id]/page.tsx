@@ -723,8 +723,11 @@ function ClienteDetailInner({ id }: { id: string }) {
             {mpConnected === false && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 Conecte o Mercado Pago em{' '}
-                <Link href="/painel/perfil" className="font-semibold underline">
-                  Perfil
+                <Link
+                  href="/painel/loja/pagamentos"
+                  className="font-semibold underline"
+                >
+                  Pagamentos e Comissões
                 </Link>{' '}
                 antes de gerar o link.
               </div>
