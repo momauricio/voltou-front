@@ -9,33 +9,21 @@ export function LandingIcp() {
     <section
       id="para-quem"
       ref={ref}
-      className="scroll-mt-20 border-t border-border/60 px-4 py-20 sm:px-6 sm:py-28"
+      className="scroll-mt-20 border-t border-border/60 px-4 py-16 sm:px-6 sm:py-24"
     >
       <div className="mx-auto max-w-3xl text-center">
         <h2
           className={`text-3xl font-bold tracking-tight sm:text-4xl sm:leading-tight transition duration-700 ${
-            inView
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-4 opacity-0'
+            inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
           Feito pra loja física que perde a segunda venda
         </h2>
-        <p
-          className={`mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg transition duration-700 delay-100 ${
-            inView
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-3 opacity-0'
-          }`}
-        >
-          Quem já comprou (ou quis comprar) e ninguém atende de novo — é venda
-          perdida todo dia. A Voltou recupera isso no WhatsApp da loja.
-        </p>
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-4xl gap-10 sm:mt-14 sm:grid-cols-2 sm:gap-16">
+      <div className="mx-auto mt-10 grid max-w-4xl gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-14">
         <div
-          className={`text-left transition duration-700 delay-150 ${
+          className={`text-left transition duration-700 delay-100 ${
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
@@ -45,7 +33,7 @@ export function LandingIcp() {
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Tem loja física — calçado, moda, acessórios, presente
+              Loja física — calçado, moda, acessórios, presente
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
@@ -63,7 +51,7 @@ export function LandingIcp() {
         </div>
 
         <div
-          className={`text-left transition duration-700 delay-200 ${
+          className={`text-left transition duration-700 delay-150 ${
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
@@ -87,7 +75,7 @@ export function LandingIcp() {
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
-              Precisa de ERP, estoque avançado ou PDV fiscal
+              Precisa de ERP / PDV fiscal
             </li>
           </ul>
         </div>

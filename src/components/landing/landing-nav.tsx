@@ -19,10 +19,10 @@ export function LandingNav() {
             Prova
           </a>
           <a
-            href="#para-quem"
+            href="#resultado"
             className="hidden px-2 py-2 hover:text-foreground md:inline"
           >
-            Para quem
+            Resultado
           </a>
           <a href="/entrar" className="px-2 py-2 hover:text-foreground">
             Entrar
