@@ -6,8 +6,6 @@ import { LandingMechanism } from '@/components/landing/landing-mechanism';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingPhysicalStore } from '@/components/landing/landing-physical-store';
 import { LandingPricing } from '@/components/landing/landing-pricing';
-import { LandingProof } from '@/components/landing/landing-proof';
-import { LandingTrust } from '@/components/landing/landing-trust';
 import { LandingWhatsappMock } from '@/components/landing/landing-whatsapp-mock';
 
 export default function Home() {
@@ -19,9 +17,7 @@ export default function Home() {
         <LandingPhysicalStore />
         <LandingMechanism />
         <LandingWhatsappMock />
-        <LandingTrust />
         <LandingPricing />
-        <LandingProof />
         <LandingIcp />
         <LandingFaq />
         <LandingCta />
