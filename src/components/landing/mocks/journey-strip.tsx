@@ -1,33 +1,53 @@
 'use client';
 
 const STEPS = [
-  { n: '1', label: 'Cadastra', hint: 'No balcão' },
-  { n: '2', label: 'IA vende', hint: 'Produto + cupom' },
-  { n: '3', label: 'Cliente paga', hint: 'WA da loja' },
-  { n: '4', label: 'Você recebe', hint: 'Dinheiro + aviso' },
-];
+  {
+    n: '1',
+    title: 'Você cadastra no balcão',
+    body: 'Nome, WhatsApp e o que a pessoa comprou ou quis — uns 30 segundos.',
+  },
+  {
+    n: '2',
+    title: 'A Voltou vende de novo',
+    body: 'Entra em contato pelo WhatsApp da loja com produto e cupom na medida.',
+  },
+  {
+    n: '3',
+    title: 'O cliente paga no link',
+    body: 'Sem você ficar cobrando no WhatsApp. Quando paga, o dinheiro cai pra você.',
+  },
+  {
+    n: '4',
+    title: 'Você só prepara a entrega',
+    body: 'Recebe o aviso do pedido e entrega — retirada ou envio.',
+  },
+] as const;
 
 export function JourneyStrip() {
   return (
-    <ol className="flex w-full gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:gap-3 sm:overflow-visible sm:pb-0">
+    <ol className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
       {STEPS.map((step, i) => (
         <li
           key={step.n}
-          className="relative flex min-w-[7.5rem] flex-1 flex-col items-center text-center sm:min-w-0"
+          className="relative flex flex-col rounded-2xl border border-border bg-card p-5 text-left shadow-[var(--shadow-soft)]"
         >
-          {i < STEPS.length - 1 ? (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute top-4 left-[calc(50%+1.25rem)] hidden h-px w-[calc(100%-2.5rem)] bg-border sm:block"
-            />
-          ) : null}
-          <span className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-            {step.n}
-          </span>
-          <p className="mt-3 text-sm font-semibold tracking-tight text-foreground">
-            {step.label}
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+              {step.n}
+            </span>
+            {i < STEPS.length - 1 ? (
+              <span
+                aria-hidden
+                className="hidden h-px flex-1 bg-border lg:block"
+              />
+            ) : null}
+          </div>
+          <p className="mt-4 text-[15px] font-semibold tracking-tight text-foreground sm:text-base">
+            {step.title}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">{step.hint}</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {step.body}
+          </p>
         </li>
       ))}
     </ol>

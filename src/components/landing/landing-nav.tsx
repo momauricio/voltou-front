@@ -24,6 +24,12 @@ export function LandingNav() {
           >
             Resultado
           </a>
+          <a
+            href="#faq"
+            className="hidden px-2 py-2 hover:text-foreground lg:inline"
+          >
+            FAQ
+          </a>
           <a href="/entrar" className="px-2 py-2 hover:text-foreground">
             Entrar
           </a>

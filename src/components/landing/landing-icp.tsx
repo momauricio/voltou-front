@@ -17,7 +17,7 @@ export function LandingIcp() {
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
-          Feito pra loja física que perde a segunda venda
+          Pra loja física que perde a segunda venda
         </h2>
       </div>
 
@@ -27,25 +27,25 @@ export function LandingIcp() {
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
-          <p className="text-sm font-semibold text-primary">É pra você se</p>
+          <p className="text-sm font-semibold text-primary">Faz sentido se</p>
           <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground sm:text-[15px]">
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Loja física — calçado, moda, acessórios, presente
+              Você tem loja física — calçado, moda, acessórios, presente
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Tem WhatsApp do cliente
+              Consegue anotar o WhatsApp do cliente
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Não tem equipe pra chase pós-venda
+              Não tem gente sobrando pra ligar e oferecer depois da venda
             </li>
           </ul>
         </div>
@@ -63,19 +63,19 @@ export function LandingIcp() {
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
-              Só marketplace sem o contato do cliente
+              Só vende em marketplace e não tem o contato do cliente
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
-              Quer blast genérico em massa
+              Quer disparar mensagem igual pra todo mundo
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5" aria-hidden>
                 —
               </span>
-              Precisa de ERP / PDV fiscal
+              Precisa de ERP ou PDV fiscal — isso não é o nosso foco
             </li>
           </ul>
         </div>
