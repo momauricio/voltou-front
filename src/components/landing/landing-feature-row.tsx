@@ -6,7 +6,7 @@ import { useInView } from '@/components/landing/use-in-view';
 type LandingFeatureRowProps = {
   id?: string;
   title: string;
-  body: string;
+  body: ReactNode;
   visual: ReactNode;
   /** When true, visual is on the left on desktop */
   reverse?: boolean;
