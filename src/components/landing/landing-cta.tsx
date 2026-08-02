@@ -24,15 +24,27 @@ export function LandingCta() {
           Sem mensalidade. Sem cartão pra criar a conta. Só comissão quando a
           venda entrar.
         </p>
-        <a
-          href="/entrar?tab=criar"
-          className="relative mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-        >
-          Criar conta e cadastrar a 1ª venda
-          <span aria-hidden>→</span>
-        </a>
-        <p className="relative mt-3 text-xs text-background/50">
+        <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href="/entrar?tab=criar"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+          >
+            Criar conta e cadastrar a 1ª venda
+            <span aria-hidden>→</span>
+          </a>
+          <a
+            href="#fluxo"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-background/25 bg-transparent px-6 text-sm font-medium text-background/90 transition hover:bg-background/10"
+          >
+            Ver como funciona
+          </a>
+        </div>
+        <p className="relative mt-4 text-xs text-background/50">
           Leva ~2 minutos · sem mensalidade · sem cartão
+        </p>
+        <p className="relative mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-background/45">
+          Os dados dos clientes da sua loja não são vendidos nem compartilhados
+          com terceiros para marketing.
         </p>
       </div>
     </section>

@@ -11,16 +11,17 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.voltouapp.com"),
   title: {
-    default: "Recupere as vendas que a loja perde todo dia | Voltou",
+    default:
+      "Clientes compraram na sua loja e nunca mais voltaram | Voltou",
     template: "%s | Voltou",
   },
   description:
-    "A Voltou recupera clientes que compraram só uma vez: a IA escolhe o produto, personaliza o cupom e fecha no WhatsApp da loja. Sem mensalidade — só comissão.",
+    "Nós recuperamos e vendemos de novo pra esse cliente. Sem mensalidade. Sem cartão. Só comissão na venda que não aconteceria sozinha.",
   keywords: [
     "recuperar vendas loja física",
-    "recompra whatsapp loja",
+    "recompra clientes loja",
+    "clientes que não voltam",
     "cupom personalizado whatsapp",
-    "upsell loja de bairro",
     "comissão venda recuperada",
     "whatsapp da loja",
   ],
@@ -32,15 +33,17 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "https://www.voltouapp.com",
     siteName: "Voltou",
-    title: "Recupere as vendas que a loja perde todo dia | Voltou",
+    title:
+      "Clientes compraram na sua loja e nunca mais voltaram | Voltou",
     description:
-      "IA que recupera a segunda venda no WhatsApp da loja. Sem mensalidade — só comissão.",
+      "Nós recuperamos e vendemos de novo pra esse cliente. Sem mensalidade — só comissão.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Recupere as vendas que a loja perde todo dia | Voltou",
+    title:
+      "Clientes compraram na sua loja e nunca mais voltaram | Voltou",
     description:
-      "IA que recupera a segunda venda no WhatsApp da loja. Sem mensalidade — só comissão.",
+      "Nós recuperamos e vendemos de novo pra esse cliente. Sem mensalidade — só comissão.",
   },
   robots: {
     index: true,
@@ -68,7 +71,7 @@ export default function RootLayout({
     operatingSystem: "Web",
     url: "https://www.voltouapp.com",
     description:
-      "A Voltou recupera clientes que compraram só uma vez: a IA escolhe o produto, personaliza o cupom e fecha no WhatsApp da loja. Sem mensalidade — só comissão.",
+      "Nós recuperamos e vendemos de novo pro cliente que comprou na loja e não voltou. Sem mensalidade — só comissão na venda recuperada.",
     offers: {
       "@type": "Offer",
       price: "0",

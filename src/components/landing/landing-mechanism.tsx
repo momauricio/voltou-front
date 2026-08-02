@@ -10,7 +10,7 @@ export function LandingMechanism() {
     <section
       id="fluxo"
       ref={ref}
-      className="scroll-mt-20 border-t border-border/60 bg-background px-4 py-16 sm:px-6 sm:py-24"
+      className="scroll-mt-20 border-t border-border/60 bg-muted/40 px-4 py-16 sm:px-6 sm:py-24"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
@@ -19,20 +19,21 @@ export function LandingMechanism() {
               inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
-            Assim recuperamos mais vendas pra você
+            Como funciona na prática
           </h2>
           <p
-            className={`mt-4 text-muted-foreground transition duration-700 delay-100 ${
+            className={`mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg transition duration-700 delay-100 ${
               inView ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
             }`}
           >
-            Do balcão ao dinheiro na conta — sem você precisar atender o
-            WhatsApp o dia inteiro.
+            Você cadastra o cliente no balcão. A Voltou entra em contato e vende
+            de novo pelo WhatsApp da loja. Quando o cliente paga, o dinheiro cai
+            e você recebe o aviso pra preparar a entrega.
           </p>
         </div>
 
         <div
-          className={`mt-12 transition duration-700 delay-150 sm:mt-14 ${
+          className={`mt-10 transition duration-700 delay-150 sm:mt-12 ${
             inView ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >

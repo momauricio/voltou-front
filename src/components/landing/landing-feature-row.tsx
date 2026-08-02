@@ -44,9 +44,9 @@ export function LandingFeatureRow({
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl sm:leading-tight">
             {title}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <div className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
             {body}
-          </p>
+          </div>
         </div>
 
         <div

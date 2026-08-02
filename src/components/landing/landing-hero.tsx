@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Hero — 1º viewport: copy curta + CTA only (mock abaixo do fold).
+ * Hero — dor (nunca mais voltaram) + CTA único + comissão em destaque.
  */
 export function LandingHero() {
   return (
@@ -18,34 +18,45 @@ export function LandingHero() {
           </p>
 
           <h1 className="landing-reveal landing-reveal-delay-0 mt-4 text-[2.05rem] font-bold leading-[1.12] tracking-tight text-foreground sm:text-5xl sm:leading-[1.08]">
-            Clientes compram uma vez — e ninguém vende de novo pra eles.
+            Seus clientes compraram na sua loja — e{' '}
+            <span className="relative inline-block text-primary">
+              nunca mais voltaram
+              <svg
+                aria-hidden
+                className="pointer-events-none absolute -bottom-1 left-0 h-3 w-full text-primary/70 sm:-bottom-1.5 sm:h-3.5"
+                viewBox="0 0 200 12"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M2 8c40-6 80-8 120-4s56 6 76 2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            .
           </h1>
 
           <p className="landing-reveal landing-reveal-delay-1 mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            A Voltou recupera e vende pra esses clientes que compraram só uma
-            vez na sua loja. A IA escolhe o produto, personaliza o cupom e fecha
-            no WhatsApp da loja.
+            Nós recuperamos e vendemos de novo pra esse cliente.
           </p>
 
-          <div className="landing-reveal landing-reveal-delay-1 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-start">
-            <div>
-              <a
-                href="/entrar?tab=criar"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-              >
-                Recuperar minha primeira venda
-                <span aria-hidden>→</span>
-              </a>
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                Sem mensalidade · sem cartão · só comissão · ~2 min
-              </p>
-            </div>
+          <div className="landing-reveal landing-reveal-delay-1 mt-8 flex flex-col items-center">
             <a
-              href="#fluxo"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-semibold text-foreground transition hover:bg-muted"
+              href="/entrar?tab=criar"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
             >
-              Ver como funciona
+              Recuperar minha primeira venda
+              <span aria-hidden>→</span>
             </a>
+            <p className="mt-4 max-w-md text-center text-sm font-medium leading-snug text-foreground">
+              Sem mensalidade. Sem cartão.{' '}
+              <span className="text-primary">
+                Só comissão na venda que não aconteceria sozinha.
+              </span>
+            </p>
           </div>
         </div>
       </div>
