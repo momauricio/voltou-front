@@ -19,14 +19,8 @@ export function LandingNav() {
             Prova
           </a>
           <a
-            href="#resultado"
-            className="hidden px-2 py-2 hover:text-foreground md:inline"
-          >
-            Resultado
-          </a>
-          <a
             href="#faq"
-            className="hidden px-2 py-2 hover:text-foreground lg:inline"
+            className="hidden px-2 py-2 hover:text-foreground md:inline"
           >
             FAQ
           </a>
