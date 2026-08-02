@@ -15,9 +15,9 @@ export default function Home() {
       <LandingNav />
       <main>
         <LandingHero />
+        <LandingPhysicalStore />
         <LandingMechanism />
         <LandingWhatsappMock />
-        <LandingPhysicalStore />
         <LandingTrust />
         <LandingPricing />
         <LandingDashboard />
