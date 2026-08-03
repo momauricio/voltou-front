@@ -39,13 +39,13 @@ export function LandingIcp() {
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Consegue anotar o WhatsApp do cliente
+              Na venda, o WhatsApp do cliente fica com você
             </li>
             <li className="flex gap-2.5">
               <span className="mt-0.5 text-primary" aria-hidden>
                 ✓
               </span>
-              Não tem gente sobrando pra ligar e oferecer depois da venda
+              Não sobra gente pra chamar o cliente no WhatsApp depois da venda
             </li>
           </ul>
         </div>
