@@ -20,23 +20,13 @@ export function LandingCta() {
           Comece hoje. Se em 30 dias não recuperar pelo menos 2 vendas, você
           cancela.
         </h2>
-        <p className="relative mx-auto mt-4 max-w-md text-sm text-background/70">
-          Sem mensalidade. Sem cartão pra criar a conta. Só comissão quando a
-          venda entrar.
-        </p>
-        <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="relative mt-8 flex justify-center">
           <a
             href="/entrar?tab=criar"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
             Criar conta e cadastrar a 1ª venda
             <span aria-hidden>→</span>
-          </a>
-          <a
-            href="#fluxo"
-            className="inline-flex h-12 items-center justify-center rounded-full border border-background/25 bg-transparent px-6 text-sm font-medium text-background/90 transition hover:bg-background/10"
-          >
-            Ver como funciona
           </a>
         </div>
         <p className="relative mt-4 text-xs text-background/50">
