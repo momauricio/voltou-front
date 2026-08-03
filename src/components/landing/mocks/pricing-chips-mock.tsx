@@ -1,34 +1,63 @@
-const CHIPS = [
-  { n: '1', title: 'Conta grátis', body: 'Sem cartão pra começar' },
-  { n: '2', title: 'Venda recuperada', body: 'Cliente paga no link' },
-  { n: '3', title: 'Comissão só aí', body: 'Você paga quando entra' },
-];
+const NO_PAY = [
+  'Mensalidade',
+  'Cartão pra abrir conta',
+  'Taxa fixa mensal',
+] as const;
+
+const ONLY_THEN = [
+  'Comissão na venda recuperada',
+  'Quando o cliente paga no link',
+  'Se a venda não entra, comissão não entra',
+] as const;
 
 export function PricingChipsMock() {
   return (
-    <ol className="mx-auto flex w-full max-w-md flex-col gap-3">
-      {CHIPS.map((chip, i) => (
-        <li
-          key={chip.n}
-          className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-[var(--shadow-soft)]"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-            {chip.n}
-          </span>
-          <div className="min-w-0 text-left">
-            <p className="text-sm font-semibold text-foreground">{chip.title}</p>
-            <p className="text-xs text-muted-foreground">{chip.body}</p>
+    <div className="mx-auto w-full max-w-md">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
+        <div className="grid sm:grid-cols-2">
+          <div className="border-b border-border p-5 sm:border-b-0 sm:border-r">
+            <p className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground">
+              NÃO PAGA
+            </p>
+            <ul className="mt-4 space-y-3">
+              {NO_PAY.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2.5 text-sm text-muted-foreground sm:text-[15px]"
+                >
+                  <span aria-hidden className="mt-0.5 text-muted-foreground/70">
+                    —
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          {i < CHIPS.length - 1 ? (
-            <span
-              aria-hidden
-              className="ml-auto hidden text-muted-foreground sm:inline"
-            >
-              →
-            </span>
-          ) : null}
-        </li>
-      ))}
-    </ol>
+
+          <div className="bg-accent/40 p-5">
+            <p className="text-[11px] font-semibold tracking-[0.12em] text-primary">
+              SÓ PAGA AÍ
+            </p>
+            <ul className="mt-4 space-y-3">
+              {ONLY_THEN.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2.5 text-sm text-foreground sm:text-[15px]"
+                >
+                  <span aria-hidden className="mt-0.5 text-primary">
+                    ✓
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <p className="border-t border-border px-5 py-3 text-center text-xs font-medium text-muted-foreground sm:text-sm">
+          Comissão só na venda que não aconteceria sozinha.
+        </p>
+      </div>
+    </div>
   );
 }
