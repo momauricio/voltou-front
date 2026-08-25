@@ -259,7 +259,7 @@ export default function RegrasPage() {
 
       <Section
         title="Sobre o negócio"
-        description="Ajuda a IA a entender o contexto da sua loja ao responder clientes."
+        description="Ajuda a Voltou a vender no tom da sua loja ao responder clientes."
       >
         <textarea
           value={sobreNegocio}
@@ -283,7 +283,7 @@ export default function RegrasPage() {
 
       <Section
         title="Instruções extras"
-        description="Regras específicas que a IA deve sempre seguir ou evitar."
+        description="Regras de atendimento e oferta que devem sempre ser seguidas ou evitadas."
       >
         <textarea
           value={instrucoesExtras}
@@ -339,8 +339,8 @@ export default function RegrasPage() {
       </Section>
 
       <Section
-        title="Automação"
-        description="Regras de follow-up e descontos automáticos oferecidos pela IA."
+        title="Ofertas de recuperação"
+        description="Regras de follow-up e descontos nas ofertas de recuperação."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
@@ -425,7 +425,7 @@ export default function RegrasPage() {
           </label>
 
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            A IA não oferece cupom acima desses tetos. Com 2+ itens no checkout, o
+            A Voltou não oferece cupom acima desses tetos. Com 2+ itens no checkout, o
             teto de 2+ vale para cada item.
           </p>
 
@@ -457,7 +457,7 @@ export default function RegrasPage() {
 
       <Section
         title="Cupons"
-        description="Cupons que a IA pode oferecer durante as conversas de recompra."
+        description="Cupons disponíveis nas conversas de recuperação."
       >
         <div className="divide-y divide-border rounded-xl border border-border">
           {cupons.map((c) => (

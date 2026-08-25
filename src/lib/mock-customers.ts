@@ -108,14 +108,14 @@ const SOURCE_LABEL: Record<InterestSource, string> = {
   walk_in: 'Loja física',
   whatsapp: 'WhatsApp',
   import: 'Importação',
-  ai: 'IA',
+  ai: 'Recuperação',
   web: 'Site',
 };
 
 const SALE_SOURCE_LABEL: Record<SaleSource, string> = {
   in_store: 'Loja física',
   checkout_link: 'Link de pagamento',
-  ai: 'IA',
+  ai: 'Recuperação',
   import: 'Importação',
 };
 
@@ -296,12 +296,12 @@ function buildInitialCustomers(): MockCustomer[] {
       produto: jaqueta.nome,
       compra: '20/05/2026',
       disparo: 'Agendado para 25/06',
-      interests: [mkInterest(jaqueta, 'ai', 22, 'open', 'Sugerido pela IA após compra anterior')],
+      interests: [mkInterest(jaqueta, 'ai', 22, 'open', 'Sugerido na recuperação após compra anterior')],
       sales: [mkSale(bone, 'in_store', 50)],
       checkouts: [mkCheckout(jaqueta, 'pending', 2, 'f9k2m1n0')],
       events: [
         mkEvent('sale', 'Compra na loja física', 50, bone.nome),
-        mkEvent('interest', 'Interesse em Jaqueta Windbreaker', 22, 'Sugerido pela IA'),
+        mkEvent('interest', 'Interesse em Jaqueta Windbreaker', 22, 'Sugerido na recuperação'),
         mkEvent('checkout_sent', 'Link de pagamento enviado', 2, 'Jaqueta Windbreaker · R$ 259,00'),
       ],
     },

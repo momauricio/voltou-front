@@ -179,7 +179,7 @@ export default function CampanhasPage() {
     <div className="space-y-6">
       <PageHeader
         title="Campanhas"
-        subtitle="Disparos e venda ativa com aprovação humana. Regras ficam para o automático da IA."
+        subtitle="Disparos e venda ativa com aprovação humana. Regras ficam para a recuperação automática."
         actions={
           <button
             type="button"
@@ -396,7 +396,7 @@ export default function CampanhasPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Novo disparo"
-        description="Gera mensagens na fila de aprovação. Depois de aprovar, o envio respeita o horário das Regras (venda automática da IA fica em Regras)."
+        description="Gera mensagens na fila de aprovação. Depois de aprovar, o envio respeita o horário das Regras (recuperação automática fica em Regras)."
       >
         <form onSubmit={(e) => void handleCreate(e)} className="space-y-4">
           <div>
