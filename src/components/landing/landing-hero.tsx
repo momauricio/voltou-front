@@ -16,7 +16,7 @@ export function LandingHero() {
           <h1 className="landing-reveal text-[2.05rem] font-bold leading-[1.12] tracking-tight text-foreground sm:text-5xl sm:leading-[1.08]">
             A primeira venda você fez no balcão.{' '}
             <span className="relative inline-block text-primary">
-              A segunda ninguém puxa
+              A segunda ninguém puxa.
               <svg
                 aria-hidden
                 className="pointer-events-none absolute -bottom-1 left-0 h-3 w-full text-primary/70 sm:-bottom-1.5 sm:h-3.5"
@@ -32,7 +32,6 @@ export function LandingHero() {
                 />
               </svg>
             </span>
-            .
           </h1>
 
           <p className="landing-reveal landing-reveal-delay-1 mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
