@@ -23,7 +23,15 @@ const CUPONS_INICIAIS: Cupom[] = [
   { id: '2', codigo: 'BEMVINDO15', desconto: '15%', validade: 'Sem validade' },
 ];
 
-const STORAGE_KEY = 'voltou_regras';
+function parseDescontoPct(raw: string): number | null {
+  const n = Number.parseFloat(raw.replace('%', '').replace(',', '.').trim());
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  return n;
+}
+
+function formatDescontoPct(n: number): string {
+  return `${n}%`;
+}
 
 const DEFAULTS: Required<
   Omit<StoreRules, 'cupons'> & { cupons: Cupom[]; aniversario: boolean }
@@ -160,18 +168,20 @@ export default function RegrasPage() {
           if (rules) applyRules(rules, setters);
           setPersistMode('api');
           return;
-        } catch {
-          // cai para localStorage
+        } catch (err) {
+          if (!cancelled) {
+            setErro(
+              err instanceof Error
+                ? err.message
+                : 'Não foi possível carregar as regras da conta.',
+            );
+            setPersistMode('api');
+          }
+          return;
         }
       }
 
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (!saved) return;
-      try {
-        applyRules(JSON.parse(saved) as StoreRules, setters);
-      } catch {
-        // ignora
-      }
+      setErro('Entre na conta da loja para carregar e salvar as regras na conta.');
     })();
     return () => {
       cancelled = true;
@@ -187,12 +197,23 @@ export default function RegrasPage() {
   function handleAdicionarCupom(e: FormEvent) {
     e.preventDefault();
     if (!novoCodigo.trim() || !novoDesconto.trim()) return;
+    const pct = parseDescontoPct(novoDesconto);
+    if (pct === null) {
+      setErro('Informe o desconto do cupom em porcentagem (0 a 100).');
+      return;
+    }
+    const teto = parseDescontoPct(margemMaxima) ?? 100;
+    if (pct > teto) {
+      setErro(`O cupom não pode passar do desconto máximo da loja (${teto}%).`);
+      return;
+    }
+    setErro(null);
     setCupons((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         codigo: novoCodigo.trim().toUpperCase(),
-        desconto: novoDesconto.trim(),
+        desconto: formatDescontoPct(pct),
         validade: novaValidade.trim() || 'Sem validade',
       },
     ]);
@@ -203,6 +224,11 @@ export default function RegrasPage() {
   }
 
   async function handleSalvar() {
+    if (!tenantCtx) {
+      setErro('Entre na conta da loja para salvar as regras na conta.');
+      return;
+    }
+
     const payload: StoreRules = {
       sobreNegocio,
       personalidade,
@@ -222,13 +248,8 @@ export default function RegrasPage() {
     setSaving(true);
     setErro(null);
     try {
-      if (tenantCtx) {
-        await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
-        setPersistMode('api');
-      } else {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        setPersistMode('local');
-      }
+      await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
+      setPersistMode('api');
       setSalvo(true);
       setTimeout(() => setSalvo(false), 3000);
     } catch (err) {
@@ -247,13 +268,13 @@ export default function RegrasPage() {
     <div className="space-y-6 pb-16">
       <PageHeader
         title="Regras"
-        subtitle="Configure como a Voltou conversa com seus clientes e quando dispara mensagens."
+        subtitle="Configure como a Voltou conversa com seus clientes e em que horário."
       />
 
-      {persistMode === 'local' && (
+      {persistMode !== 'api' && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Regras salvas só neste navegador. Entre na conta da loja para persistir na API e
-          alimentar o motor de campanhas.
+          As regras da loja só valem quando estão salvas na conta. Entre e use Salvar
+          regras — horário e cupons não ficam só no navegador.
         </div>
       )}
 
@@ -294,8 +315,8 @@ export default function RegrasPage() {
       </Section>
 
       <Section
-        title="Horários de disparo"
-        description="Mensagens só são enviadas dentro dessa janela, nos dias selecionados."
+        title="Horário de atendimento"
+        description="Mensagens da Voltou só saem dentro dessa janela, nos dias selecionados."
       >
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -457,7 +478,7 @@ export default function RegrasPage() {
 
       <Section
         title="Cupons"
-        description="Cupons disponíveis nas conversas de recuperação."
+        description="Códigos com desconto máximo em porcentagem. A Voltou não passa do teto da loja."
       >
         <div className="divide-y divide-border rounded-xl border border-border">
           {cupons.map((c) => (
@@ -504,13 +525,21 @@ export default function RegrasPage() {
               className={fieldClass}
               required
             />
-            <input
-              value={novoDesconto}
-              onChange={(e) => setNovoDesconto(e.target.value)}
-              placeholder="Desconto (ex: 10%)"
-              className={fieldClass}
-              required
-            />
+            <div className="relative">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={novoDesconto}
+                onChange={(e) => setNovoDesconto(e.target.value)}
+                placeholder="Desconto máximo %"
+                className={`${fieldClass} w-full pr-8`}
+                required
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                %
+              </span>
+            </div>
             <input
               value={novaValidade}
               onChange={(e) => setNovaValidade(e.target.value)}
@@ -553,7 +582,7 @@ export default function RegrasPage() {
         <div className="flex items-center gap-3">
           {salvo && (
             <span className="rounded-xl border border-success/30 bg-success/10 px-3.5 py-2 text-sm font-medium text-success shadow-[var(--shadow-soft)]">
-              {persistMode === 'api' ? 'Salvo na loja.' : 'Salvo localmente.'}
+              Salvo na conta da loja.
             </span>
           )}
           <button

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/assert-lojista-no-disparo.mjs"
   },
   "dependencies": {
     "@mercadopago/sdk-react": "^1.0.7",

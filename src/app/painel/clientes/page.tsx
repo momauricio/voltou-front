@@ -40,7 +40,7 @@ const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'dang
   Inativo: 'danger',
 };
 
-type MenuAcao = 'ficha' | 'interesse' | 'checkout' | 'historico';
+type MenuAcao = 'ficha' | 'interesse' | 'historico';
 
 export default function ClientesPage() {
   return (
@@ -327,7 +327,7 @@ function ClientesPageInner() {
     <div className="space-y-6">
       <PageHeader
         title="Clientes"
-        subtitle={`${clientes.length} cadastrados · ${filtrados.length} exibidos · disparos ficam em Campanhas`}
+        subtitle={`${clientes.length} cadastrados · ${filtrados.length} exibidos`}
         actions={
           <>
             <button
@@ -545,7 +545,7 @@ function ClientesPageInner() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Novo cliente"
-        description="Cadastro manual — o cliente entra na sua base para futuros disparos."
+        description="Cadastro manual — o cliente entra na base da loja para a Voltou recuperar a próxima compra."
       >
         <form onSubmit={(e) => void handleNovoCliente(e)} className="space-y-4">
           <div>
@@ -802,7 +802,6 @@ function ClienteCard({
             <div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card py-1 shadow-[var(--shadow-soft)]">
               <MenuItem label="Ver ficha" onClick={() => onNavigate('ficha')} />
               <MenuItem label="Registrar interesse" onClick={() => onNavigate('interesse')} />
-              <MenuItem label="Enviar link de pagamento" onClick={() => onNavigate('checkout')} />
               <MenuItem label="Ver histórico" onClick={() => onNavigate('historico')} />
               <div className="my-1 border-t border-border" />
               <button
@@ -884,7 +883,6 @@ function ClienteRow({
               <div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card py-1 shadow-[var(--shadow-soft)]">
                 <MenuItem label="Ver ficha" onClick={() => onNavigate('ficha')} />
                 <MenuItem label="Registrar interesse" onClick={() => onNavigate('interesse')} />
-                <MenuItem label="Enviar link de pagamento" onClick={() => onNavigate('checkout')} />
                 <MenuItem label="Ver histórico" onClick={() => onNavigate('historico')} />
                 <div className="my-1 border-t border-border" />
                 <button

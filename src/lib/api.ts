@@ -1,3 +1,5 @@
+import { assertLojistaCannotDispatch } from '@/lib/lojista-panel-policy';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export type ApiErrorBody = {
@@ -705,6 +707,7 @@ export async function createApiCheckout(payload: {
   interestId?: string;
   createdBy?: 'human' | 'ai';
 }) {
+  assertLojistaCannotDispatch();
   return jsonFetch<ApiCheckout>('/checkouts', {
     method: 'POST',
     body: JSON.stringify({ createdBy: 'human', ...payload }),
@@ -1162,6 +1165,7 @@ export async function createCampaign(payload: {
   messageTemplate: string;
   autoApprove?: boolean;
 }) {
+  assertLojistaCannotDispatch();
   return jsonFetch<{
     id: string;
     name: string;
@@ -1186,6 +1190,7 @@ export async function listOutreachMessages(
 }
 
 export async function approveOutreachMessage(tenantId: string, id: string) {
+  assertLojistaCannotDispatch();
   return jsonFetch<OutreachMessage>(
     `/campaigns/messages/${encodeURIComponent(id)}/approve`,
     { method: 'POST', body: JSON.stringify({ tenantId }) },
@@ -1193,6 +1198,7 @@ export async function approveOutreachMessage(tenantId: string, id: string) {
 }
 
 export async function rejectOutreachMessage(tenantId: string, id: string) {
+  assertLojistaCannotDispatch();
   return jsonFetch<OutreachMessage>(
     `/campaigns/messages/${encodeURIComponent(id)}/reject`,
     { method: 'POST', body: JSON.stringify({ tenantId }) },
@@ -1204,6 +1210,7 @@ export async function approveAllOutreach(
   storeId: string,
   campaignId?: string,
 ) {
+  assertLojistaCannotDispatch();
   return jsonFetch<{ approved: number }>('/campaigns/approve-all', {
     method: 'POST',
     body: JSON.stringify({ tenantId, storeId, campaignId }),
