@@ -19,7 +19,7 @@ Referência sob demanda. Carregar quando precisar de contratos ou decisões de p
 | Campaign / OutreachMessage | Draft → aprovação → envio; contadores por status |
 | Offer / Checkout | Link público pago; cupom no path da URL |
 | Fulfillment | `awaiting` \| `ready` \| `shipped` \| `done` no checkout pago |
-| WhatsApp connection | Sessão de vendas (painel `/painel/whatsapp`) |
+| WhatsApp connection | Sessão de vendas (painel `/painel/perfil#whatsapp`) |
 | orderNotifyPhoneE164 | WA separado só para alertas de pedido ao lojista |
 
 ## Segmentos (`SegmentId`)

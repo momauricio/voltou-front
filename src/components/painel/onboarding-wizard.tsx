@@ -102,7 +102,7 @@ export function OnboardingWizard() {
           id: 'whatsapp',
           title: 'Conectar o WhatsApp da loja',
           description: 'Opcional — as conversas saem deste número quando quiser',
-          href: '/painel/whatsapp',
+          href: '/painel/perfil#whatsapp',
           done: waConnected,
           optional: true,
         },
