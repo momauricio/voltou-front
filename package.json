@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/assert-lojista-no-disparo.mjs"
+    "test": "node scripts/assert-lojista-no-disparo.mjs && node --test --experimental-strip-types src/lib/*.test.ts"
   },
   "dependencies": {
     "@mercadopago/sdk-react": "^1.0.7",
