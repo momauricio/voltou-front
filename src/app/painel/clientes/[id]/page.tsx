@@ -6,11 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
-  COMMISSION_RATE_BPS,
   MOCK_PRODUCTS,
   addInterest,
   addSale,
-  createCheckout,
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -25,11 +23,8 @@ import {
 } from '@/lib/mock-customers';
 import {
   addApiInterest,
-  createApiCheckout,
   createApiSale,
   getApiCustomer,
-  getMercadoPagoConnection,
-  getStoredTenantContext,
   listApiProducts,
   markApiCheckoutPaid,
   resolveTenantContext,
@@ -72,7 +67,7 @@ const EVENT_ICON: Record<EventType, string> = {
   note: '📝',
 };
 
-type Acao = 'interesse' | 'compra' | 'checkout' | 'historico';
+type Acao = 'interesse' | 'compra' | 'historico';
 
 function ClienteDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
@@ -80,18 +75,11 @@ function ClienteDetailInner({ id }: { id: string }) {
 
   const [modalInteresse, setModalInteresse] = useState(false);
   const [modalCompra, setModalCompra] = useState(false);
-  const [modalCheckout, setModalCheckout] = useState(false);
 
   const [produtoInteresse, setProdutoInteresse] = useState(MOCK_PRODUCTS[0].nome);
   const [notasInteresse, setNotasInteresse] = useState('');
   const [produtoCompra, setProdutoCompra] = useState(MOCK_PRODUCTS[0].nome);
   const [valorCompra, setValorCompra] = useState('');
-  const [produtoCheckout, setProdutoCheckout] = useState(MOCK_PRODUCTS[0].nome);
-  const [interestCheckoutId, setInterestCheckoutId] = useState('');
-  const [checkoutGerado, setCheckoutGerado] = useState<string | null>(null);
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
-  const [checkoutErro, setCheckoutErro] = useState<string | null>(null);
-  const [mpConnected, setMpConnected] = useState<boolean | null>(null);
 
   const [tenantCtx, setTenantCtx] = useState<{
     tenantId: string;
@@ -115,15 +103,13 @@ function ClienteDetailInner({ id }: { id: string }) {
       }
       setTenantCtx({ tenantId: ctx.tenantId, storeId: ctx.storeId });
       try {
-        const [detail, products, mp] = await Promise.all([
+        const [detail, products] = await Promise.all([
           getApiCustomer(ctx.tenantId, id),
           listApiProducts(ctx.tenantId, ctx.storeId),
-          getMercadoPagoConnection(ctx.tenantId, ctx.storeId).catch(() => null),
         ]);
         if (cancelled) return;
         setApiCustomer(mapApiCustomerDetail(detail));
         setApiProducts(products.filter((p) => p.active));
-        setMpConnected(mp?.connected ?? false);
       } catch {
         // cliente não é da API (ex.: mock) — segue com fallback local
       } finally {
@@ -170,9 +156,6 @@ function ClienteDetailInner({ id }: { id: string }) {
       setProdutoCompra((prev) =>
         productOptions.some((p) => p.nome === prev) ? prev : productOptions[0].nome,
       );
-      setProdutoCheckout((prev) =>
-        productOptions.some((p) => p.nome === prev) ? prev : productOptions[0].nome,
-      );
     }
   }, [productOptions]);
 
@@ -180,7 +163,6 @@ function ClienteDetailInner({ id }: { id: string }) {
     const acao = searchParams.get('acao') as Acao | null;
     if (acao === 'interesse') setModalInteresse(true);
     if (acao === 'compra') setModalCompra(true);
-    if (acao === 'checkout') setModalCheckout(true);
   }, [searchParams]);
 
   const customer = apiCustomer ?? getCustomer(id);
@@ -189,14 +171,6 @@ function ClienteDetailInner({ id }: { id: string }) {
     () => customer?.interests.filter((i) => i.status === 'open') ?? [],
     [customer],
   );
-
-  const checkoutPreview = useMemo(() => {
-    const product =
-      productOptions.find((p) => p.nome === produtoCheckout) ?? productOptions[0];
-    const amountCents = product?.precoCents ?? 0;
-    const commissionCents = Math.round((amountCents * COMMISSION_RATE_BPS) / 10000);
-    return { amountCents, commissionCents, product };
-  }, [produtoCheckout, productOptions]);
 
   const fieldClass =
     'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -296,62 +270,6 @@ function ClienteDetailInner({ id }: { id: string }) {
     }
   }
 
-  async function handleCheckout(e: FormEvent) {
-    e.preventDefault();
-    setCheckoutErro(null);
-    setCheckoutBusy(true);
-
-    const { amountCents } = checkoutPreview;
-    const ctx = getStoredTenantContext();
-
-    if (ctx.tenantId && ctx.storeId) {
-      if (mpConnected === false) {
-        setCheckoutErro(
-          'Conecte o Mercado Pago em Perfil antes de gerar o link de pagamento.',
-        );
-        setCheckoutBusy(false);
-        return;
-      }
-      try {
-        const apiProduct = apiProducts?.find((p) => p.name === produtoCheckout);
-        if (!apiProduct?.id) {
-          setCheckoutErro('Selecione um produto cadastrado na loja.');
-          setCheckoutBusy(false);
-          return;
-        }
-        const apiCheckout = await createApiCheckout({
-          tenantId: ctx.tenantId,
-          storeId: ctx.storeId,
-          customerId: id,
-          productId: apiProduct.id,
-          productName: produtoCheckout,
-          amountCents,
-          interestId: interestCheckoutId || undefined,
-          createdBy: 'human',
-        });
-        setCheckoutGerado(apiCheckout.paymentUrl);
-        if (usingApi) await reloadApiCustomer();
-        setCheckoutBusy(false);
-        return;
-      } catch (err) {
-        setCheckoutErro(
-          err instanceof Error
-            ? err.message
-            : 'Não foi possível gerar o link de pagamento.',
-        );
-        setCheckoutBusy(false);
-        return;
-      }
-    }
-
-    const checkout = createCheckout(id, {
-      productName: produtoCheckout,
-      interestId: interestCheckoutId || undefined,
-    });
-    if (checkout) setCheckoutGerado(checkout.paymentUrl);
-    setCheckoutBusy(false);
-  }
-
   function copyUrl(url: string) {
     navigator.clipboard.writeText(url).then(() => {
       window.alert('Link copiado para a área de transferência.');
@@ -403,7 +321,7 @@ function ClienteDetailInner({ id }: { id: string }) {
           <p className="mt-1.5 text-sm text-muted-foreground">{customer.phoneMasked}</p>
           {optedOut && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              Opt-out ativo — não receberá disparos automáticos.
+              Opt-out ativo — não receberá mensagens automáticas da Voltou.
             </p>
           )}
         </div>
@@ -450,30 +368,6 @@ function ClienteDetailInner({ id }: { id: string }) {
           onClick={() => setModalCompra(true)}
           variant="outline"
         />
-        <ActionButton
-          icon={
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </svg>
-          }
-          label="Enviar link de pagamento"
-          onClick={() => {
-            setCheckoutGerado(null);
-            setModalCheckout(true);
-          }}
-          variant="outline"
-        />
-        <ActionButton
-          icon={
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3a9 9 0 0 0-7.75 13.6L3 21l4.55-1.2A9 9 0 1 0 12 3Z" />
-            </svg>
-          }
-          label="Disparar WhatsApp"
-          onClick={() => window.alert('Disparo individual chega em breve. Use Regras para configurar mensagens.')}
-          variant="outline"
-        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
@@ -481,7 +375,7 @@ function ClienteDetailInner({ id }: { id: string }) {
           <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
             <h2 className="text-sm font-semibold text-foreground">Histórico unificado</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Interesses, compras, checkouts, disparos e respostas do WhatsApp
+              Interesses, compras, checkouts e respostas do WhatsApp
             </p>
             <div className="mt-5 space-y-0">
               {customer.events.length === 0 && (
@@ -536,7 +430,7 @@ function ClienteDetailInner({ id }: { id: string }) {
 
           <SideCard title="Checkouts" count={customer.checkouts.length}>
             {customer.checkouts.length === 0 ? (
-              <EmptyState text="Nenhum link de pagamento gerado." />
+              <EmptyState text="Nenhum checkout nesta ficha." />
             ) : (
               customer.checkouts.map((checkout) => (
                 <div key={checkout.id} className="border-b border-border py-3 last:border-0 last:pb-0 first:pt-0">
@@ -568,18 +462,6 @@ function ClienteDetailInner({ id }: { id: string }) {
                           className="inline-flex h-7 items-center rounded-lg bg-primary/10 px-2 text-xs font-medium text-primary transition hover:bg-primary/20"
                         >
                           Marcar pago
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProdutoCheckout(checkout.productNameSnapshot);
-                            setCheckoutGerado(null);
-                            setCheckoutErro(null);
-                            setModalCheckout(true);
-                          }}
-                          className="inline-flex h-7 items-center rounded-lg border border-border px-2 text-xs font-medium text-foreground transition hover:bg-muted"
-                        >
-                          Reenviar link
                         </button>
                       </>
                     )}
@@ -674,134 +556,6 @@ function ClienteDetailInner({ id }: { id: string }) {
           </div>
           <ModalActions onCancel={() => setModalCompra(false)} submitLabel="Registrar compra" />
         </form>
-      </Modal>
-
-      <Modal
-        open={modalCheckout}
-        onClose={() => {
-          setModalCheckout(false);
-          setCheckoutGerado(null);
-          setCheckoutErro(null);
-        }}
-        title="Enviar link de pagamento"
-        description="Gere um checkout /loja/slug/cupom para o cliente finalizar pelo WhatsApp."
-      >
-        {checkoutGerado ? (
-          <div className="space-y-4">
-            {checkoutErro && (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                {checkoutErro}
-              </p>
-            )}
-            <div className="rounded-xl border border-success/30 bg-success/10 p-4">
-              <p className="text-sm font-medium text-foreground">Link gerado com sucesso!</p>
-              <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{checkoutGerado}</p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => copyUrl(checkoutGerado)}
-                className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-              >
-                Copiar link
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setModalCheckout(false);
-                  setCheckoutGerado(null);
-                  setCheckoutErro(null);
-                }}
-                className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground transition hover:bg-muted"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={(e) => void handleCheckout(e)} className="space-y-4">
-            {mpConnected === false && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Conecte o Mercado Pago em{' '}
-                <Link href="/painel/perfil" className="font-semibold underline">
-                  Perfil
-                </Link>{' '}
-                antes de gerar o link.
-              </div>
-            )}
-            {openInterests.length > 0 && (
-              <div>
-                <label htmlFor="interestCheckout" className="text-sm font-medium text-foreground">
-                  A partir de interesse (opcional)
-                </label>
-                <select
-                  id="interestCheckout"
-                  value={interestCheckoutId}
-                  onChange={(e) => {
-                    setInterestCheckoutId(e.target.value);
-                    const interest = openInterests.find((i) => i.id === e.target.value);
-                    if (interest) setProdutoCheckout(interest.productNameSnapshot);
-                  }}
-                  className={fieldClass}
-                >
-                  <option value="">Nenhum — escolher produto</option>
-                  {openInterests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.productNameSnapshot}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label htmlFor="produtoCheckout" className="text-sm font-medium text-foreground">
-                Produto
-              </label>
-              <select
-                id="produtoCheckout"
-                value={produtoCheckout}
-                onChange={(e) => setProdutoCheckout(e.target.value)}
-                className={fieldClass}
-              >
-                {productOptions.map((p) => (
-                  <option key={p.id} value={p.nome}>
-                    {p.nome} — {formatCurrency(p.precoCents)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor da venda</span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(checkoutPreview.amountCents)}
-                </span>
-              </div>
-              <div className="mt-2 flex justify-between">
-                <span className="text-muted-foreground">
-                  Comissão Voltou ({COMMISSION_RATE_BPS / 100}%)
-                </span>
-                <span className="font-medium text-primary">
-                  {formatCurrency(checkoutPreview.commissionCents)}
-                </span>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                O acesso à Voltou é gratuito para a loja. A comissão fica no split do Mercado Pago
-                quando a conta estiver conectada.
-              </p>
-            </div>
-            {checkoutErro && !checkoutGerado && (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                {checkoutErro}
-              </p>
-            )}
-            <ModalActions
-              onCancel={() => setModalCheckout(false)}
-              submitLabel={checkoutBusy ? 'Gerando…' : 'Gerar link'}
-              disabled={checkoutBusy || mpConnected === false}
-            />
-          </form>
-        )}
       </Modal>
     </div>
   );

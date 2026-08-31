@@ -32,6 +32,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/painel/campanhas",
+        destination: "/painel",
+        permanent: false,
+      },
+      {
+        source: "/painel/campanhas/:path*",
+        destination: "/painel",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     const target = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
     if (!target) return [];

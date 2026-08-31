@@ -397,14 +397,14 @@ export default function PainelDashboardPage() {
                 Ainda sem a 1ª venda recuperada
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Siga o checklist: Mercado Pago → base → WhatsApp → 1º disparo.
+                Siga o checklist: Mercado Pago → base → regras. WhatsApp é opcional. A recuperação fica com a Voltou.
               </p>
             </div>
             <Link
-              href="/painel/campanhas"
+              href="/painel/regras"
               className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
             >
-              Ir às campanhas
+              Definir regras
             </Link>
           </div>
         )}
@@ -548,7 +548,7 @@ export default function PainelDashboardPage() {
           value={totals.contatos.toLocaleString('pt-BR')}
         />
         <KpiCard
-          label="Prontos pra disparar"
+          label="Prontos para recuperar"
           value={
             readyToContact != null
               ? readyToContact.toLocaleString('pt-BR')

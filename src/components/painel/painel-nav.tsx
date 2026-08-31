@@ -44,8 +44,8 @@ const iconProps = {
 };
 
 /**
- * RCD attention hierarchy: lead with the activation path
- * (campanhas / WhatsApp) after the home overview — not a flat feature list.
+ * Operational store setup after the home overview.
+ * Recovery / blasts are operated by Voltou, not from this nav.
  */
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -64,17 +64,6 @@ const NAV_GROUPS: NavGroup[] = [
             <rect x="14" y="3" width="7" height="5" rx="1" />
             <rect x="14" y="12" width="7" height="9" rx="1" />
             <rect x="3" y="16" width="7" height="5" rx="1" />
-          </svg>
-        ),
-      },
-      {
-        href: '/painel/campanhas',
-        label: 'Campanhas',
-        short: 'Camp.',
-        mobilePrimary: true,
-        icon: (
-          <svg {...iconProps}>
-            <path d="m3 3 18 9-18 9 4-9-4-9Z" />
           </svg>
         ),
       },

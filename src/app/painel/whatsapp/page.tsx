@@ -26,7 +26,7 @@ const STATUS_TONE: Record<UiStatus, 'success' | 'warning' | 'danger'> = {
 const STATUS_HINT: Record<UiStatus, string> = {
   Conectado: 'Enviando e recebendo mensagens normalmente.',
   Aguardando: 'Escaneie o QR no WhatsApp do celular para concluir a conexão.',
-  Desconectado: 'Reconecte esse número para retomar os disparos.',
+  Desconectado: 'Reconecte esse número para a loja voltar a conversar no WhatsApp.',
 };
 
 export default function WhatsappPage() {
@@ -222,7 +222,7 @@ export default function WhatsappPage() {
     <div className="space-y-6">
       <PageHeader
         title="WhatsApp"
-        subtitle="Conecte os números da sua loja — escaneie o QR no celular."
+        subtitle="Conecte o WhatsApp da loja. As conversas com o cliente saem deste número."
         actions={
           <button
             type="button"
@@ -265,6 +265,9 @@ export default function WhatsappPage() {
         <div className="rounded-2xl border border-dashed border-border bg-muted/40 px-5 py-10 text-center">
           <p className="text-sm font-medium text-foreground">
             Nenhum WhatsApp conectado
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Opcional — você pode conectar depois. Não bloqueia a configuração da loja.
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Clique em Conectar WhatsApp e escaneie o QR com o celular da loja.
@@ -434,7 +437,7 @@ export default function WhatsappPage() {
         {phase === 'done' && (
           <div className="space-y-4">
             <p className="rounded-xl border border-border bg-accent/50 px-3 py-2 text-sm text-foreground">
-              WhatsApp conectado. Você já pode usar este número nos disparos.
+              WhatsApp da loja conectado. As conversas saem deste número.
             </p>
             <div className="flex justify-end">
               <button

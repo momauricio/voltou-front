@@ -5,11 +5,9 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   getMercadoPagoConnection,
-  getSegments,
   getStoreRules,
   listApiCustomers,
   listApiProducts,
-  listCampaigns,
   listWhatsappConnections,
   resolveTenantContext,
 } from '@/lib/api';
@@ -50,8 +48,7 @@ export function OnboardingWizard() {
         return;
       }
 
-      const [customers, products, rules, wa, mp, segments, campaigns] =
-        await Promise.all([
+      const [customers, products, rules, wa, mp] = await Promise.all([
           listApiCustomers(ctx.tenantId, ctx.storeId).catch(() => []),
           listApiProducts(ctx.tenantId, ctx.storeId).catch(() => []),
           getStoreRules(ctx.tenantId, ctx.storeId).catch(() => ({
@@ -61,8 +58,6 @@ export function OnboardingWizard() {
           getMercadoPagoConnection(ctx.tenantId, ctx.storeId).catch(() => ({
             connected: false,
           })),
-          getSegments(ctx.tenantId, ctx.storeId).catch(() => null),
-          listCampaigns(ctx.tenantId, ctx.storeId).catch(() => []),
         ]);
 
       if (cancelled) return;
@@ -70,9 +65,8 @@ export function OnboardingWizard() {
       const waConnected = wa.some(
         (c) => c.uiStatus === 'Conectado' || c.status === 'WORKING',
       );
-      const hasSentCampaign = campaigns.some((c) => c.counts.sent > 0);
 
-      // Path crítico: MP → base → WA → 1º disparo (regras opcionais)
+      // Path crítico: MP → base → regras. WhatsApp é opcional. Recuperação fica com a Voltou.
       setSteps([
         {
           id: 'pagamento',
@@ -98,29 +92,18 @@ export function OnboardingWizard() {
           done: customers.length > 0 && products.length > 0,
         },
         {
-          id: 'whatsapp',
-          title: 'Abrir o canal de retorno',
-          description: 'Conecte o WhatsApp da loja',
-          href: '/painel/whatsapp',
-          done: waConnected,
-        },
-        {
-          id: 'campanha',
-          title: 'Disparar a 1ª recuperação',
-          description: hasSentCampaign
-            ? 'Primeiro lote enviado'
-            : segments && segments.readyToContact > 0
-              ? `${segments.readyToContact} clientes prontos — envie agora`
-              : 'Aprovar o primeiro lote e enviar',
-          href: '/painel/campanhas',
-          done: hasSentCampaign,
-        },
-        {
           id: 'regras',
-          title: 'Afinar horário e desconto',
-          description: 'Tom, janela e teto de desconto',
+          title: 'Definir horário e cupom',
+          description: 'Janela de atendimento e teto de desconto na conta',
           href: '/painel/regras',
           done: Boolean(rules.rules),
+        },
+        {
+          id: 'whatsapp',
+          title: 'Conectar o WhatsApp da loja',
+          description: 'Opcional — as conversas saem deste número quando quiser',
+          href: '/painel/whatsapp',
+          done: waConnected,
           optional: true,
         },
       ]);
@@ -169,8 +152,8 @@ export function OnboardingWizard() {
             </p>
             <h2 className="mt-0.5 text-base font-semibold tracking-tight text-foreground sm:text-lg">
               {remaining === 1
-                ? 'Último passo — dispare a recuperação'
-                : `Faltam ${remaining} passos para voltar a vender`}
+                ? 'Último passo — termine a configuração da loja'
+                : `Faltam ${remaining} passos para a loja ficar pronta`}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {doneRequired} de {required.length} essenciais · {progressPct}%
