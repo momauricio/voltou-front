@@ -39,7 +39,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: '/painel',
     label: 'Dashboard',
-    short: 'Início',
     exact: true,
     icon: (
       <svg {...iconProps}>
