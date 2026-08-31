@@ -6,6 +6,7 @@ import {
   createTransparentOfferPayment,
   type TransparentPaymentResult,
 } from '@/lib/api';
+import { creditCardMaxInstallments } from '@/lib/credit-card-max-installments';
 import {
   MP_BRICK_LOAD_ERROR,
   MP_BRICK_LOAD_TIMEOUT_MS,
@@ -94,6 +95,8 @@ export function TransparentCheckoutBrick({
   const [brickReady, setBrickReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const amount = Number((amountCents / 100).toFixed(2));
+  // Brick shows “Parcelamento disponível” whenever maxInstallments > 1.
+  const maxInstallments = creditCardMaxInstallments(amountCents);
   const deliveryBlocked =
     fulfillmentMethod === 'delivery' &&
     !isShippingAddressComplete(shippingAddress);
@@ -182,7 +185,7 @@ export function TransparentCheckoutBrick({
             paymentMethods: {
               creditCard: 'all',
               bankTransfer: 'all',
-              maxInstallments: 12,
+              maxInstallments,
             },
             visual: {
               style: {
