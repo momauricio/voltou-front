@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/painel/page-header';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
@@ -74,6 +75,14 @@ export default function PerfilPage() {
       />
 
       <WhatsappConnectCard />
+
+      <p className="rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-muted-foreground">
+        Endereço de retirada e WhatsApp de aviso de pedido ficam em{' '}
+        <Link href="/painel/regras" className="font-medium text-foreground underline">
+          Regras
+        </Link>
+        .
+      </p>
 
       <Suspense fallback={null}>
         <PaymentProvidersCard />

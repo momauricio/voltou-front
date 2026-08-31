@@ -121,7 +121,7 @@ export function FulfillmentSettingsCard() {
     });
     if (!parsed.ok) {
       setFieldErrors(parsed.errors);
-      setError('Preencha o endereço de retirada e o WhatsApp para avisos.');
+      setError(null);
       return;
     }
 
@@ -250,6 +250,8 @@ export function FulfillmentSettingsCard() {
             onChange={(e) => {
               setPickupAddressText(e.target.value);
               setFieldErrors((prev) => ({ ...prev, pickupAddressText: undefined }));
+              setError(null);
+              setOk(null);
             }}
             rows={3}
             maxLength={500}
@@ -290,6 +292,8 @@ export function FulfillmentSettingsCard() {
             onChange={(e) => {
               setOrderNotifyPhone(formatBrMobileNational(e.target.value));
               setFieldErrors((prev) => ({ ...prev, orderNotifyPhone: undefined }));
+              setError(null);
+              setOk(null);
             }}
             placeholder={BR_MOBILE_NATIONAL_PLACEHOLDER}
             className={fieldErrors.orderNotifyPhone ? fieldErrorClass : fieldClass}
@@ -339,6 +343,10 @@ export function FulfillmentSettingsCard() {
         >
           {saving ? 'Salvando…' : 'Salvar entrega e pedidos'}
         </button>
+        <p className="text-xs text-muted-foreground">
+          Este bloco grava só entrega e o WhatsApp de aviso. O botão Salvar
+          regras mais abaixo não inclui estes campos.
+        </p>
       </form>
     </section>
   );
