@@ -44,6 +44,16 @@ const nextConfig: NextConfig = {
         destination: "/painel",
         permanent: false,
       },
+      {
+        source: "/painel/whatsapp",
+        destination: "/painel/perfil#whatsapp",
+        permanent: false,
+      },
+      {
+        source: "/painel/whatsapp/:path*",
+        destination: "/painel/perfil#whatsapp",
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

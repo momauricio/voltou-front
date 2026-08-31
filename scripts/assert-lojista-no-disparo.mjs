@@ -18,6 +18,7 @@ const forbidden = [
   'Disparar a 1ª recuperação',
   'disparos ficam em Campanhas',
   'Ir às campanhas',
+  'Mais opções',
 ];
 
 for (const needle of forbidden) {
@@ -112,4 +113,46 @@ if (clientes.includes('>Disparo<') || clientes.includes('Disparo {')) {
   throw new Error('Clientes list still labels outreach as Disparo');
 }
 
-console.log(`ok: scanned ${files.length} painel files, dispatch UI gone, rules persist via API`);
+const nav = readFileSync(join(root, 'src/components/painel/painel-nav.tsx'), 'utf8');
+const navItemHrefs = [...nav.matchAll(/href: '(\/painel(?:\/[a-z]+)?)'/g)].map(
+  (m) => m[1],
+);
+const expectedNavHrefs = [
+  '/painel',
+  '/painel/clientes',
+  '/painel/produtos',
+  '/painel/pedidos',
+  '/painel/regras',
+];
+if (JSON.stringify(navItemHrefs) !== JSON.stringify(expectedNavHrefs)) {
+  throw new Error(
+    `Painel nav must be exactly ${expectedNavHrefs.join(', ')}; got ${navItemHrefs.join(', ') || '(none)'}`,
+  );
+}
+if (/href=["']\/painel\/whatsapp/.test(nav) || /href=["']\/painel\/campanhas/.test(nav)) {
+  throw new Error('Painel nav still links WhatsApp or Campanhas as a tab');
+}
+if (/\bMais\b/.test(nav) && /aria-expanded/.test(nav)) {
+  throw new Error('Painel nav still has a Mais overflow tab');
+}
+
+if (onboarding.includes("href: '/painel/whatsapp'")) {
+  throw new Error('Onboarding WhatsApp step must open Perfil, not a WhatsApp tab');
+}
+
+const perfil = readFileSync(join(root, 'src/app/painel/perfil/page.tsx'), 'utf8');
+if (!perfil.includes('WhatsappConnectCard')) {
+  throw new Error('Perfil must host WhatsApp connect');
+}
+if (!perfil.includes('Sair')) {
+  throw new Error('Perfil must include Sair');
+}
+
+const waPage = readFileSync(join(root, 'src/app/painel/whatsapp/page.tsx'), 'utf8');
+if (!waPage.includes("redirect('/painel/perfil")) {
+  throw new Error('/painel/whatsapp must redirect to Perfil');
+}
+
+console.log(
+  `ok: scanned ${files.length} painel files, dispatch UI gone, Mais sheet gone, WhatsApp lives on Perfil`,
+);

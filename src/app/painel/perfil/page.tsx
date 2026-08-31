@@ -1,22 +1,30 @@
 'use client';
 
 import { FormEvent, Suspense, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/painel/page-header';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
 import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
 import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
-import { changePassword, getStoredAccessToken } from '@/lib/api';
+import { WhatsappConnectCard } from '@/components/painel/whatsapp-connect-card';
+import { changePassword, clearClientSession, getStoredAccessToken } from '@/lib/api';
 
 const fieldClass =
   'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
 
 export default function PerfilPage() {
+  const router = useRouter();
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmar, setConfirmar] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function handleSair() {
+    clearClientSession();
+    router.push('/entrar');
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -63,8 +71,10 @@ export default function PerfilPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
         title="Perfil"
-        subtitle="Gerencie a conta da loja, pagamentos, entrega, aparência do checkout e a segurança do acesso."
+        subtitle="Gerencie WhatsApp, pagamentos, entrega, aparência do checkout e a segurança do acesso."
       />
+
+      <WhatsappConnectCard />
 
       <Suspense fallback={null}>
         <PaymentProvidersCard />
@@ -146,6 +156,20 @@ export default function PerfilPage() {
             {loading ? 'Salvando…' : 'Salvar nova senha'}
           </button>
         </form>
+      </section>
+
+      <section className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] lg:mx-0">
+        <h2 className="text-base font-semibold text-foreground">Sair</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Encerra a sessão neste dispositivo. Você pode entrar de novo quando quiser.
+        </p>
+        <button
+          type="button"
+          onClick={handleSair}
+          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+        >
+          Sair da conta
+        </button>
       </section>
     </div>
   );
