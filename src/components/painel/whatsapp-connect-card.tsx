@@ -97,6 +97,15 @@ export function WhatsappConnectCard() {
     return () => stopPolling();
   }, [tenantId, refreshList, stopPolling]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#whatsapp') return;
+    document.getElementById('whatsapp')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
+
   function openConnectModal() {
     stopPolling();
     setApelido('');

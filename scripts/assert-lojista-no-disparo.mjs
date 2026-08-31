@@ -114,27 +114,23 @@ if (clientes.includes('>Disparo<') || clientes.includes('Disparo {')) {
 }
 
 const nav = readFileSync(join(root, 'src/components/painel/painel-nav.tsx'), 'utf8');
-const requiredNavHrefs = [
-  "href: '/painel'",
-  "href: '/painel/clientes'",
-  "href: '/painel/produtos'",
-  "href: '/painel/pedidos'",
-  "href: '/painel/regras'",
+const navItemHrefs = [...nav.matchAll(/href: '(\/painel(?:\/[a-z]+)?)'/g)].map(
+  (m) => m[1],
+);
+const expectedNavHrefs = [
+  '/painel',
+  '/painel/clientes',
+  '/painel/produtos',
+  '/painel/pedidos',
+  '/painel/regras',
 ];
-for (const href of requiredNavHrefs) {
-  if (!nav.includes(href)) {
-    throw new Error(`Painel nav missing first-class tab: ${href}`);
-  }
+if (JSON.stringify(navItemHrefs) !== JSON.stringify(expectedNavHrefs)) {
+  throw new Error(
+    `Painel nav must be exactly ${expectedNavHrefs.join(', ')}; got ${navItemHrefs.join(', ') || '(none)'}`,
+  );
 }
-for (const banned of [
-  "href: '/painel/whatsapp'",
-  "href: '/painel/campanhas'",
-  "href: '/painel/perfil'",
-  'Mais opções',
-]) {
-  if (nav.includes(banned)) {
-    throw new Error(`Painel nav still exposes overflow/extra tab: ${banned}`);
-  }
+if (/href=["']\/painel\/whatsapp/.test(nav) || /href=["']\/painel\/campanhas/.test(nav)) {
+  throw new Error('Painel nav still links WhatsApp or Campanhas as a tab');
 }
 if (/\bMais\b/.test(nav) && /aria-expanded/.test(nav)) {
   throw new Error('Painel nav still has a Mais overflow tab');
@@ -153,7 +149,7 @@ if (!perfil.includes('Sair')) {
 }
 
 const waPage = readFileSync(join(root, 'src/app/painel/whatsapp/page.tsx'), 'utf8');
-if (!waPage.includes("redirect('/painel/perfil')")) {
+if (!waPage.includes("redirect('/painel/perfil")) {
   throw new Error('/painel/whatsapp must redirect to Perfil');
 }
 
