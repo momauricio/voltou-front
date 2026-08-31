@@ -131,12 +131,15 @@ export default function RegrasPage() {
   const [novaValidade, setNovaValidade] = useState('');
   const [salvo, setSalvo] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [persistMode, setPersistMode] = useState<'api' | 'local'>('local');
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'blocked'>(
+    'loading',
+  );
   const [tenantCtx, setTenantCtx] = useState<{
     tenantId: string;
     storeId: string;
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const canSave = loadState === 'ready' && Boolean(tenantCtx);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,22 +169,23 @@ export default function RegrasPage() {
           const { rules } = await getStoreRules(ctx.tenantId, ctx.storeId);
           if (cancelled) return;
           if (rules) applyRules(rules, setters);
-          setPersistMode('api');
+          setLoadState('ready');
           return;
         } catch (err) {
           if (!cancelled) {
             setErro(
               err instanceof Error
                 ? err.message
-                : 'Não foi possível carregar as regras da conta.',
+                : 'Não foi possível carregar as regras da conta. Recarregue antes de salvar.',
             );
-            setPersistMode('api');
+            setLoadState('blocked');
           }
           return;
         }
       }
 
       setErro('Entre na conta da loja para carregar e salvar as regras na conta.');
+      setLoadState('blocked');
     })();
     return () => {
       cancelled = true;
@@ -224,7 +228,7 @@ export default function RegrasPage() {
   }
 
   async function handleSalvar() {
-    if (!tenantCtx) {
+    if (!canSave || !tenantCtx) {
       setErro('Entre na conta da loja para salvar as regras na conta.');
       return;
     }
@@ -249,7 +253,7 @@ export default function RegrasPage() {
     setErro(null);
     try {
       await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
-      setPersistMode('api');
+      setLoadState('ready');
       setSalvo(true);
       setTimeout(() => setSalvo(false), 3000);
     } catch (err) {
@@ -271,10 +275,11 @@ export default function RegrasPage() {
         subtitle="Configure como a Voltou conversa com seus clientes e em que horário."
       />
 
-      {persistMode !== 'api' && (
+      {loadState !== 'ready' && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          As regras da loja só valem quando estão salvas na conta. Entre e use Salvar
-          regras — horário e cupons não ficam só no navegador.
+          {loadState === 'loading'
+            ? 'Carregando as regras da conta…'
+            : 'As regras só gravam na conta depois que o carregamento da API funcionar. Nada é salvo só no navegador.'}
         </div>
       )}
 
@@ -587,7 +592,7 @@ export default function RegrasPage() {
           )}
           <button
             type="button"
-            disabled={saving}
+            disabled={saving || !canSave}
             onClick={() => void handleSalvar()}
             className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95 disabled:opacity-60"
           >

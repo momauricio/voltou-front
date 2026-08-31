@@ -103,5 +103,13 @@ if (regras.includes("localStorage.setItem('voltou_regras'")) {
 if (!regras.includes('saveStoreRules')) {
   throw new Error('Regras must persist via saveStoreRules');
 }
+if (!regras.includes('canSave') || !regras.includes("loadState === 'ready'")) {
+  throw new Error('Regras must refuse save until the account rules load');
+}
+
+const clientes = readFileSync(join(root, 'src/app/painel/clientes/page.tsx'), 'utf8');
+if (clientes.includes('>Disparo<') || clientes.includes('Disparo {')) {
+  throw new Error('Clientes list still labels outreach as Disparo');
+}
 
 console.log(`ok: scanned ${files.length} painel files, dispatch UI gone, rules persist via API`);

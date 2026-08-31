@@ -430,7 +430,7 @@ function ClienteDetailInner({ id }: { id: string }) {
 
           <SideCard title="Checkouts" count={customer.checkouts.length}>
             {customer.checkouts.length === 0 ? (
-              <EmptyState text="Nenhum link de pagamento gerado." />
+              <EmptyState text="Nenhum checkout nesta ficha." />
             ) : (
               customer.checkouts.map((checkout) => (
                 <div key={checkout.id} className="border-b border-border py-3 last:border-0 last:pb-0 first:pt-0">

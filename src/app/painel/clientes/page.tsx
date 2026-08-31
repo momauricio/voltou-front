@@ -472,7 +472,7 @@ function ClientesPageInner() {
                 <th className="px-5 py-3 font-medium">Cliente</th>
                 <th className="px-5 py-3 font-medium">Produto</th>
                 <th className="px-5 py-3 font-medium">Compra</th>
-                <th className="px-5 py-3 font-medium">Disparo</th>
+                <th className="px-5 py-3 font-medium">Contato</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Ações</th>
               </tr>
@@ -775,7 +775,7 @@ function ClienteCard({
         </p>
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
           <span>Compra {cliente.compra}</span>
-          <span>Disparo {cliente.disparo}</span>
+          <span>Contato {cliente.disparo}</span>
         </p>
       </div>
       <div className="mt-3 flex items-center gap-2">
