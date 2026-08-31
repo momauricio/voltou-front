@@ -34,6 +34,8 @@ describe('creditCardMaxInstallments', () => {
   it('never returns 0 or more than 12', () => {
     assert.equal(creditCardMaxInstallments(0), 1);
     assert.equal(creditCardMaxInstallments(-100), 1);
+    assert.equal(creditCardMaxInstallments(Number.NaN), 1);
+    assert.equal(creditCardMaxInstallments(Number.POSITIVE_INFINITY), 1);
   });
 });
 
@@ -43,6 +45,11 @@ describe('Payment Brick installment config', () => {
     assert.ok(
       brick.includes('creditCardMaxInstallments(amountCents)'),
       'Brick must compute maxInstallments from the charged amount',
+    );
+    assert.match(
+      brick,
+      /creditCard:\s*'all',\s*bankTransfer:\s*'all',\s*maxInstallments,/,
+      'Brick must pass the computed max into Payment customization',
     );
     assert.ok(
       !/maxInstallments:\s*12/.test(brick),
