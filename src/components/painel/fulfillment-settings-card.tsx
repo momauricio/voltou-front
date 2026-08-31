@@ -8,9 +8,19 @@ import {
   updateFulfillmentSettings,
   type StoreFulfillmentSettings,
 } from '@/lib/api';
+import {
+  BR_MOBILE_NATIONAL_PLACEHOLDER,
+  e164ToBrMobileNational,
+  formatBrMobileNational,
+  validateFulfillmentMerchantForm,
+  type FulfillmentMerchantFormErrors,
+} from '@/lib/br-mobile-national';
 
 const fieldClass =
   'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
+
+const fieldErrorClass =
+  'mt-1.5 w-full rounded-xl border border-red-300 bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/20';
 
 function centsToReaisInput(cents: number): string {
   return (Math.max(0, cents) / 100).toFixed(2).replace('.', ',');
@@ -35,6 +45,9 @@ export function FulfillmentSettingsCard() {
   const [pickupAddressText, setPickupAddressText] = useState('');
   const [orderNotifyPhone, setOrderNotifyPhone] = useState('');
   const [savedNotifyPhone, setSavedNotifyPhone] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FulfillmentMerchantFormErrors>(
+    {},
+  );
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,8 +61,9 @@ export function FulfillmentSettingsCard() {
     setDeliveryEnabled(data.deliveryEnabled);
     setShippingReais(centsToReaisInput(data.shippingCents));
     setPickupAddressText(data.pickupAddressText ?? '');
-    setOrderNotifyPhone(data.orderNotifyPhoneE164 ?? '');
+    setOrderNotifyPhone(e164ToBrMobileNational(data.orderNotifyPhoneE164));
     setSavedNotifyPhone(data.orderNotifyPhoneE164);
+    setFieldErrors({});
   }, []);
 
   useEffect(() => {
@@ -101,17 +115,27 @@ export function FulfillmentSettingsCard() {
       return;
     }
 
+    const parsed = validateFulfillmentMerchantForm({
+      pickupAddressText,
+      orderNotifyPhone,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.errors);
+      setError('Preencha o endereço de retirada e o WhatsApp para avisos.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
+    setFieldErrors({});
     try {
-      const phoneRaw = orderNotifyPhone.trim();
       const saved = await updateFulfillmentSettings({
         tenantId,
         storeId,
         deliveryEnabled,
         shippingCents,
-        pickupAddressText: pickupAddressText.trim() || null,
-        orderNotifyPhoneE164: phoneRaw || null,
+        pickupAddressText: parsed.pickupAddressText,
+        orderNotifyPhoneE164: parsed.orderNotifyPhoneE164,
       });
       applySettings(saved);
       setOk('Configurações de entrega salvas.');
@@ -215,35 +239,85 @@ export function FulfillmentSettingsCard() {
 
         <div>
           <label htmlFor="fulfillmentPickup" className="text-sm font-medium">
-            Endereço de retirada
+            Endereço de retirada{' '}
+            <span className="text-red-600" aria-hidden="true">
+              *
+            </span>
           </label>
           <textarea
             id="fulfillmentPickup"
             value={pickupAddressText}
-            onChange={(e) => setPickupAddressText(e.target.value)}
+            onChange={(e) => {
+              setPickupAddressText(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, pickupAddressText: undefined }));
+            }}
             rows={3}
             maxLength={500}
             placeholder="Ex.: Rua Exemplo, 100 — Centro — São Paulo/SP"
-            className={`${fieldClass} resize-none`}
+            className={`${fieldErrors.pickupAddressText ? fieldErrorClass : fieldClass} resize-none`}
             disabled={loading || saving || !hasSession}
+            required
+            aria-required="true"
+            aria-invalid={Boolean(fieldErrors.pickupAddressText)}
+            aria-describedby={
+              fieldErrors.pickupAddressText ? 'fulfillmentPickup-error' : undefined
+            }
           />
+          {fieldErrors.pickupAddressText ? (
+            <p
+              id="fulfillmentPickup-error"
+              role="alert"
+              className="mt-1.5 text-xs font-medium text-red-700"
+            >
+              {fieldErrors.pickupAddressText}
+            </p>
+          ) : null}
         </div>
 
         <div>
           <label htmlFor="fulfillmentNotifyPhone" className="text-sm font-medium">
-            WhatsApp para avisos de pedido
+            WhatsApp para avisos de pedido{' '}
+            <span className="text-red-600" aria-hidden="true">
+              *
+            </span>
           </label>
           <input
             id="fulfillmentNotifyPhone"
             type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
             value={orderNotifyPhone}
-            onChange={(e) => setOrderNotifyPhone(e.target.value)}
-            placeholder="+5511999999999"
-            className={fieldClass}
+            onChange={(e) => {
+              setOrderNotifyPhone(formatBrMobileNational(e.target.value));
+              setFieldErrors((prev) => ({ ...prev, orderNotifyPhone: undefined }));
+            }}
+            placeholder={BR_MOBILE_NATIONAL_PLACEHOLDER}
+            className={fieldErrors.orderNotifyPhone ? fieldErrorClass : fieldClass}
             disabled={loading || saving || !hasSession}
+            required
+            aria-required="true"
+            aria-invalid={Boolean(fieldErrors.orderNotifyPhone)}
+            aria-describedby={
+              fieldErrors.orderNotifyPhone
+                ? 'fulfillmentNotifyPhone-error fulfillmentNotifyPhone-hint'
+                : 'fulfillmentNotifyPhone-hint'
+            }
           />
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Diferente do WhatsApp conectado para falar com clientes.
+          {fieldErrors.orderNotifyPhone ? (
+            <p
+              id="fulfillmentNotifyPhone-error"
+              role="alert"
+              className="mt-1.5 text-xs font-medium text-red-700"
+            >
+              {fieldErrors.orderNotifyPhone}
+            </p>
+          ) : null}
+          <p
+            id="fulfillmentNotifyPhone-hint"
+            className="mt-1.5 text-xs text-muted-foreground"
+          >
+            Celular com DDD. Diferente do WhatsApp conectado para falar com
+            clientes.
           </p>
         </div>
 

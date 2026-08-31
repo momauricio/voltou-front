@@ -4,7 +4,6 @@ import { FormEvent, Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/painel/page-header';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
-import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
 import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
 import { WhatsappConnectCard } from '@/components/painel/whatsapp-connect-card';
 import { changePassword, clearClientSession, getStoredAccessToken } from '@/lib/api';
@@ -71,7 +70,7 @@ export default function PerfilPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
         title="Perfil"
-        subtitle="Gerencie WhatsApp, pagamentos, entrega, aparência do checkout e a segurança do acesso."
+        subtitle="Gerencie WhatsApp, pagamentos, aparência do checkout e a segurança do acesso."
       />
 
       <WhatsappConnectCard />
@@ -79,8 +78,6 @@ export default function PerfilPage() {
       <Suspense fallback={null}>
         <PaymentProvidersCard />
       </Suspense>
-
-      <FulfillmentSettingsCard />
 
       <CheckoutBrandingCard />
 
