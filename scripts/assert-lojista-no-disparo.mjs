@@ -129,6 +129,12 @@ if (JSON.stringify(navItemHrefs) !== JSON.stringify(expectedNavHrefs)) {
     `Painel nav must be exactly ${expectedNavHrefs.join(', ')}; got ${navItemHrefs.join(', ') || '(none)'}`,
   );
 }
+if (!nav.includes("label: 'Dashboard'")) {
+  throw new Error('First-class nav must label the home tab Dashboard');
+}
+if (nav.includes("short: 'Início'") || /short:\s*'Início'/.test(nav)) {
+  throw new Error('Painel nav must not use Início as a mobile short label');
+}
 if (/href=["']\/painel\/whatsapp/.test(nav) || /href=["']\/painel\/campanhas/.test(nav)) {
   throw new Error('Painel nav still links WhatsApp or Campanhas as a tab');
 }
