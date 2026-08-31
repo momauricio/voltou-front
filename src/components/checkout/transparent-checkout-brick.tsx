@@ -6,6 +6,11 @@ import {
   createTransparentOfferPayment,
   type TransparentPaymentResult,
 } from '@/lib/api';
+import {
+  MP_BRICK_LOAD_ERROR,
+  MP_BRICK_LOAD_TIMEOUT_MS,
+  isMercadoPagoResource,
+} from '@/lib/mp-brick-load';
 
 export type CheckoutShippingAddress = {
   recipientName: string;
@@ -85,7 +90,9 @@ export function TransparentCheckoutBrick({
   onPending,
   onError,
 }: Props) {
-  const [ready, setReady] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [brickReady, setBrickReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const amount = Number((amountCents / 100).toFixed(2));
   const deliveryBlocked =
     fulfillmentMethod === 'delivery' &&
@@ -97,10 +104,41 @@ export function TransparentCheckoutBrick({
 
   useEffect(() => {
     initMercadoPago(publicKey, { locale: 'pt-BR' });
-    setReady(true);
+    setInitialized(true);
+    setBrickReady(false);
+    setLoadError(null);
+
+    const fail = () => setLoadError(MP_BRICK_LOAD_ERROR);
+
+    const onViolation = (event: SecurityPolicyViolationEvent) => {
+      if (isMercadoPagoResource(event.blockedURI ?? '')) fail();
+    };
+    document.addEventListener('securitypolicyviolation', onViolation);
+
+    let script: HTMLScriptElement | null = null;
+    const onScriptError = () => fail();
+    const attachScriptError = () => {
+      script = document.querySelector(
+        'script[src*="sdk.mercadopago.com"]',
+      );
+      script?.addEventListener('error', onScriptError);
+    };
+    attachScriptError();
+    const findTimer = window.setTimeout(attachScriptError, 0);
+
+    const timeout = window.setTimeout(() => {
+      if (!('MercadoPago' in window)) fail();
+    }, MP_BRICK_LOAD_TIMEOUT_MS);
+
+    return () => {
+      document.removeEventListener('securitypolicyviolation', onViolation);
+      script?.removeEventListener('error', onScriptError);
+      window.clearTimeout(findTimer);
+      window.clearTimeout(timeout);
+    };
   }, [publicKey]);
 
-  if (!ready || amount <= 0) return null;
+  if (amount <= 0) return null;
 
   if (deliveryBlocked) {
     return (
@@ -126,6 +164,16 @@ export function TransparentCheckoutBrick({
       >
         {payHint}
       </div>
+      {loadError ? (
+        <p className="mx-3 my-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {loadError}
+        </p>
+      ) : !brickReady ? (
+        <p className="px-3 py-3 text-sm text-neutral-500">
+          Carregando Pix e cartão…
+        </p>
+      ) : null}
+      {initialized ? (
       <div className="px-1 py-2">
         <Payment
           key={`${publicKey}-${amountCents}-${fulfillmentMethod}-${selectedAddonIds.join(',')}-${shippingAddressKey(shippingAddress)}`}
@@ -141,6 +189,10 @@ export function TransparentCheckoutBrick({
                 theme: 'default',
               },
             },
+          }}
+          onReady={() => {
+            setBrickReady(true);
+            setLoadError(null);
           }}
           onSubmit={async ({ formData }) => {
             try {
@@ -233,10 +285,15 @@ export function TransparentCheckoutBrick({
             }
           }}
           onError={() => {
+            if (!brickReady) {
+              setLoadError(MP_BRICK_LOAD_ERROR);
+              return;
+            }
             onError('Erro no formulário de pagamento. Tente novamente.');
           }}
         />
       </div>
+      ) : null}
     </div>
   );
 }
