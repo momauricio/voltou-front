@@ -13,7 +13,10 @@ import {
   sessionKindFromPath,
   type SessionKind,
 } from '@/lib/client-session';
-import { customersInStore } from '@/lib/staff-crm';
+import {
+  staffCustomersAliasPath,
+  staffStoreCustomersPath,
+} from '@/lib/staff-crm';
 
 export type { ApiErrorBody } from '@/lib/api-error';
 export { ApiHttpError, isStaffForbiddenError } from '@/lib/api-error';
@@ -1344,6 +1347,7 @@ export type StaffStore = {
   slug: string;
   tenantId: string;
   tenant: { id: string; name: string; slug: string };
+  customerCount?: number;
 };
 
 export type StaffCustomer = {
@@ -1375,32 +1379,23 @@ export async function listStaffStores() {
   return jsonFetch<StaffStore[]>('/staff/stores', { cache: 'no-store' });
 }
 
-export async function listStaffCustomers() {
-  return jsonFetch<StaffCustomer[]>('/staff/customers', { cache: 'no-store' });
+/** Alias — storeId is required (API returns 400 without it). */
+export async function listStaffCustomers(storeId: string, q?: string) {
+  return jsonFetch<StaffCustomer[]>(staffCustomersAliasPath(storeId, q), {
+    cache: 'no-store',
+  });
 }
 
-/**
- * Prefer GET /staff/stores/:storeId/customers.
- * If the API does not have that route yet (404), fall back to filtering
- * GET /staff/customers in the browser — temporary, not the home list.
- */
-export async function listStaffStoreCustomers(storeId: string): Promise<{
-  customers: StaffCustomer[];
-  usedFlatListFallback: boolean;
-}> {
+/** Preferred: GET /staff/stores/:storeId/customers?q= */
+export async function listStaffStoreCustomers(storeId: string, q?: string) {
   try {
-    const customers = await jsonFetch<StaffCustomer[]>(
-      `/staff/stores/${encodeURIComponent(storeId)}/customers`,
+    return await jsonFetch<StaffCustomer[]>(
+      staffStoreCustomersPath(storeId, q),
       { cache: 'no-store' },
     );
-    return { customers, usedFlatListFallback: false };
   } catch (err) {
     if (err instanceof ApiHttpError && err.status === 404) {
-      const all = await listStaffCustomers();
-      return {
-        customers: customersInStore(all, storeId),
-        usedFlatListFallback: true,
-      };
+      return listStaffCustomers(storeId, q);
     }
     throw err;
   }

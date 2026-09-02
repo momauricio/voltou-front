@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/painel/modal';
 import { PageHeader } from '@/components/painel/page-header';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/api';
 import {
   STAFF_LOGIN_PATH,
+  formatStaffCustomerCount,
   formatStaffLastContacted,
   isStaffRole,
   parseReaisToCents,
@@ -54,6 +55,7 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
   const [customers, setCustomers] = useState<StaffCustomer[]>([]);
   const [stores, setStores] = useState<StaffStore[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [issuedUrls, setIssuedUrls] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -72,6 +74,11 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQ(search.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       const token = getStoredAccessToken();
@@ -88,12 +95,12 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
           }
           return;
         }
-        const [slice, storeRows] = await Promise.all([
-          listStaffStoreCustomers(storeId),
+        const [rows, storeRows] = await Promise.all([
+          listStaffStoreCustomers(storeId, debouncedQ),
           listStaffStores().catch(() => [] as StaffStore[]),
         ]);
         if (cancelled) return;
-        setCustomers(slice.customers);
+        setCustomers(rows);
         setStores(storeRows);
       } catch (err) {
         if (cancelled) return;
@@ -101,6 +108,8 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
           setForbidden(true);
         } else if (err instanceof ApiHttpError && err.status === 401) {
           window.location.href = STAFF_LOGIN_PATH;
+        } else if (err instanceof ApiHttpError && err.status === 404) {
+          setLoadError('Loja não encontrada.');
         } else {
           setLoadError(
             'Não foi possível carregar os clientes. Tente de novo.',
@@ -113,7 +122,7 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, debouncedQ]);
 
   const store = stores.find((row) => row.id === storeId) ?? null;
   const title = store
@@ -122,22 +131,9 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
       ? storeDisplayName(customers[0])
       : 'Loja';
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return customers;
-    return customers.filter((c) => {
-      const hay = [
-        c.displayName,
-        staffCustomerPhone(c),
-        c.phoneE164,
-        c.phoneMasked,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [customers, search]);
+  const emptyLabel = search.trim()
+    ? 'Nenhum cliente encontrado.'
+    : 'Nenhum cliente ainda.';
 
   function slugFor(customer: StaffCustomer) {
     return resolveStaffStoreSlug(customer, stores);
@@ -296,19 +292,17 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
           />
         </label>
         <p className="text-xs text-muted-foreground">
-          {customers.length} {customers.length === 1 ? 'cliente' : 'clientes'}
+          {formatStaffCustomerCount(customers.length)}
         </p>
       </div>
 
       <ul className="space-y-2 lg:hidden">
-        {filtered.length === 0 ? (
+        {customers.length === 0 ? (
           <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
-            {customers.length === 0
-              ? 'Nenhum cliente ainda.'
-              : 'Nenhum cliente encontrado.'}
+            {emptyLabel}
           </li>
         ) : (
-          filtered.map((customer) => (
+          customers.map((customer) => (
             <StaffCustomerCard
               key={customer.id}
               customer={customer}
@@ -343,7 +337,7 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((customer) => (
+              {customers.map((customer) => (
                 <tr key={customer.id} className="align-top">
                   <td className="px-5 py-3.5">
                     <p className="font-medium text-foreground">
@@ -378,15 +372,13 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {customers.length === 0 && (
                 <tr>
                   <td
                     colSpan={4}
                     className="px-5 py-10 text-center text-sm text-muted-foreground"
                   >
-                    {customers.length === 0
-                      ? 'Nenhum cliente ainda.'
-                      : 'Nenhum cliente encontrado.'}
+                    {emptyLabel}
                   </td>
                 </tr>
               )}

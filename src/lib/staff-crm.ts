@@ -72,6 +72,30 @@ export function customersInStore<T extends { storeId: string }>(
   return customers.filter((customer) => customer.storeId === storeId);
 }
 
+export function staffStoreCustomersPath(storeId: string, q?: string): string {
+  const path = `/staff/stores/${encodeURIComponent(storeId)}/customers`;
+  const trimmed = q?.trim();
+  if (!trimmed) return path;
+  return `${path}?q=${encodeURIComponent(trimmed)}`;
+}
+
+export function staffCustomersAliasPath(storeId: string, q?: string): string {
+  const id = storeId.trim();
+  if (!id) {
+    throw new Error('storeId é obrigatório.');
+  }
+  const params = new URLSearchParams({ storeId: id });
+  const trimmed = q?.trim();
+  if (trimmed) params.set('q', trimmed);
+  return `/staff/customers?${params.toString()}`;
+}
+
+export function formatStaffCustomerCount(n?: number | null): string {
+  const count =
+    typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  return count === 1 ? '1 cliente' : `${count} clientes`;
+}
+
 export function filterStaffStores<
   T extends {
     name?: string | null;

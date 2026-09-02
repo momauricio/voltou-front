@@ -15,6 +15,7 @@ import {
 import {
   STAFF_LOGIN_PATH,
   filterStaffStores,
+  formatStaffCustomerCount,
   isStaffRole,
   storeDisplayName,
 } from '@/lib/staff-crm';
@@ -125,11 +126,10 @@ export default function EquipeStoresPage() {
                 <p className="font-semibold text-foreground">
                   {storeDisplayName(store)}
                 </p>
-                {store.slug ? (
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {store.slug}
-                  </p>
-                ) : null}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatStaffCustomerCount(store.customerCount)}
+                  {store.slug ? ` · ${store.slug}` : ''}
+                </p>
               </Link>
             </li>
           ))}
