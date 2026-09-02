@@ -72,8 +72,13 @@ describe('Entrega e pedidos merchant panel contract', () => {
     const regras = readFileSync(join(root, 'src/app/painel/regras/page.tsx'), 'utf8');
     const perfil = readFileSync(join(root, 'src/app/painel/perfil/page.tsx'), 'utf8');
     assert.match(regras, /FulfillmentSettingsCard/);
+    assert.equal(regras.includes('updateFulfillmentSettings'), false);
+    assert.match(regras, /saveStoreRules/);
     assert.equal(perfil.includes('FulfillmentSettingsCard'), false);
     assert.match(perfil, /WhatsappConnectCard/);
+    assert.match(perfil, /PaymentProvidersCard/);
+    assert.match(perfil, /CheckoutBrandingCard/);
+    assert.match(perfil, /href="\/painel\/regras"/);
   });
 
   it('requires pickup and notify phone with national mask and no +55 on the form', () => {
