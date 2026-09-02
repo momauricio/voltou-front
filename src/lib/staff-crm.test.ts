@@ -181,4 +181,36 @@ describe('staff API client contract', () => {
     );
     assert.match(form, /homePathForRole\(result\.user\.role\)/);
   });
+
+  it('equipe checks /auth/me role before calling /staff/*', () => {
+    const page = readFileSync(
+      new URL('../app/equipe/page.tsx', import.meta.url),
+      'utf8',
+    );
+    const authMe = page.indexOf('fetchAuthMe');
+    const staffList = page.indexOf('listStaffCustomers');
+    assert.ok(authMe >= 0, 'equipe must call fetchAuthMe');
+    assert.ok(staffList >= 0, 'equipe must call listStaffCustomers');
+    assert.ok(
+      authMe < staffList,
+      'must resolve role before GET /staff/customers',
+    );
+    assert.match(page, /isStaffRole\(user\.role\)/);
+  });
+
+  it('painel never imports the staff checkout helper', () => {
+    const painel = [
+      readFileSync(new URL('../app/painel/page.tsx', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL('../app/painel/clientes/page.tsx', import.meta.url),
+        'utf8',
+      ),
+      readFileSync(
+        new URL('../components/painel/painel-nav.tsx', import.meta.url),
+        'utf8',
+      ),
+    ].join('\n');
+    assert.equal(painel.includes('createStaffCheckout'), false);
+    assert.equal(painel.includes('/staff/customers'), false);
+  });
 });

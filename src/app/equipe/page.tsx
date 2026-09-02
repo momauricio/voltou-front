@@ -7,6 +7,8 @@ import { PageHeader } from '@/components/painel/page-header';
 import {
   createStaffCheckout,
   ApiHttpError,
+  fetchAuthMe,
+  getStoredAccessToken,
   isStaffForbiddenError,
   listApiProducts,
   listStaffCustomers,
@@ -20,6 +22,7 @@ import {
 import {
   LOJISTA_SESSION_MESSAGE,
   formatStaffLastContacted,
+  isStaffRole,
   parseReaisToCents,
   resolveStaffStoreSlug,
   staffCheckoutPublicUrl,
@@ -70,7 +73,20 @@ export default function EquipePage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const token = getStoredAccessToken();
+      if (!token) {
+        window.location.href = '/entrar';
+        return;
+      }
       try {
+        const { user } = await fetchAuthMe(token);
+        if (!isStaffRole(user.role)) {
+          if (!cancelled) {
+            setForbidden(true);
+            setLoading(false);
+          }
+          return;
+        }
         const [rows, storeRows] = await Promise.all([
           listStaffCustomers(),
           listStaffStores().catch(() => [] as StaffStore[]),
@@ -452,7 +468,8 @@ export default function EquipePage() {
             <button
               type="button"
               onClick={() => setContactTarget(null)}
-              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
+              disabled={contactBusy}
+              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-60"
             >
               Cancelar
             </button>
@@ -542,7 +559,8 @@ export default function EquipePage() {
             <button
               type="button"
               onClick={() => setLinkTarget(null)}
-              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
+              disabled={linkBusy}
+              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-60"
             >
               Cancelar
             </button>
