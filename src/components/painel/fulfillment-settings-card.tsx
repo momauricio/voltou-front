@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import Link from 'next/link';
 import {
   getFulfillmentSettings,
@@ -35,7 +35,13 @@ function reaisInputToCents(raw: string): number | null {
   return Math.round(value * 100);
 }
 
-export function FulfillmentSettingsCard() {
+export type FulfillmentSettingsCardHandle = {
+  save: () => Promise<boolean>;
+};
+
+export const FulfillmentSettingsCard = forwardRef<
+  FulfillmentSettingsCardHandle
+>(function FulfillmentSettingsCard(_props, ref) {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
@@ -101,18 +107,17 @@ export function FulfillmentSettingsCard() {
     void refresh();
   }, [sessionReady, hasSession, refresh]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  const saveFulfillment = useCallback(async (): Promise<boolean> => {
     setOk(null);
     if (!tenantId || !storeId) {
       setError('Faça login para salvar as configurações de entrega.');
-      return;
+      return false;
     }
 
     const shippingCents = reaisInputToCents(shippingReais);
     if (shippingCents === null) {
       setError('Informe um valor de frete válido (R$).');
-      return;
+      return false;
     }
 
     const parsed = validateFulfillmentMerchantForm({
@@ -122,7 +127,7 @@ export function FulfillmentSettingsCard() {
     if (!parsed.ok) {
       setFieldErrors(parsed.errors);
       setError(null);
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -139,16 +144,28 @@ export function FulfillmentSettingsCard() {
       });
       applySettings(saved);
       setOk('Configurações de entrega salvas.');
+      return true;
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : 'Falha ao salvar configurações de entrega.',
       );
+      return false;
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    tenantId,
+    storeId,
+    shippingReais,
+    pickupAddressText,
+    orderNotifyPhone,
+    deliveryEnabled,
+    applySettings,
+  ]);
+
+  useImperativeHandle(ref, () => ({ save: saveFulfillment }), [saveFulfillment]);
 
   return (
     <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
@@ -178,11 +195,7 @@ export function FulfillmentSettingsCard() {
         </p>
       )}
 
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="mt-5 space-y-4"
-        noValidate
-      >
+      <div className="mt-5 space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5">
           <div>
             <p className="text-sm font-medium text-foreground">
@@ -335,19 +348,7 @@ export function FulfillmentSettingsCard() {
             {ok}
           </p>
         )}
-
-        <button
-          type="submit"
-          disabled={loading || saving || !hasSession}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:opacity-60"
-        >
-          {saving ? 'Salvando…' : 'Salvar entrega e pedidos'}
-        </button>
-        <p className="text-xs text-muted-foreground">
-          Este bloco grava só entrega e o WhatsApp de aviso. O botão Salvar
-          regras mais abaixo não inclui estes campos.
-        </p>
-      </form>
+      </div>
     </section>
   );
-}
+});

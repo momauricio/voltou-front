@@ -4,13 +4,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { KpiCard } from '@/components/painel/kpi-card';
 import { PageHeader } from '@/components/painel/page-header';
-import { MOCK_PRODUCTS, PRODUCT_CATEGORIES } from '@/lib/mock-customers';
 import { exportDashboardPdf } from '@/lib/export-dashboard-pdf';
 import {
   aggregateByCategory,
   filterProductPerformance,
   formatPct,
-  getProductPerformance,
   sumPerformance,
   type ProductPerf,
 } from '@/lib/mock-dashboard';
@@ -21,6 +19,10 @@ import {
   resolveTenantContext,
   type DashboardMetrics,
 } from '@/lib/api';
+import {
+  lojistaApiLoadError,
+  merchantVisibleFunnelSteps,
+} from '@/lib/lojista-panel-ux';
 
 type PeriodKey = '7d' | '30d' | 'mes' | '90d';
 
@@ -98,6 +100,24 @@ function ChartLabels({ labels }: { labels: string[] }) {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true" aria-live="polite">
+      <p className="sr-only">Carregando métricas…</p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-2xl border border-border bg-muted/60"
+          />
+        ))}
+      </div>
+      <div className="h-40 animate-pulse rounded-2xl border border-border bg-muted/40" />
+      <div className="h-56 animate-pulse rounded-2xl border border-border bg-muted/40" />
+    </div>
+  );
+}
+
 export default function PainelDashboardPage() {
   const [period, setPeriod] = useState<PeriodKey>('30d');
   const [de, setDe] = useState(daysAgoIso(29));
@@ -106,10 +126,10 @@ export default function PainelDashboardPage() {
   const [product, setProduct] = useState('todos');
   const [exporting, setExporting] = useState(false);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [usingApi, setUsingApi] = useState(false);
-  const [demoBanner, setDemoBanner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ownerFirstName, setOwnerFirstName] = useState('');
+  const usingApi = metrics != null;
 
   useEffect(() => {
     const token = getStoredAccessToken();
@@ -130,8 +150,8 @@ export default function PainelDashboardPage() {
       const ctx = await resolveTenantContext();
       if (cancelled) return;
       if (!ctx.tenantId || !ctx.storeId) {
-        setDemoBanner(true);
-        setUsingApi(false);
+        setMetrics(null);
+        setLoadError(lojistaApiLoadError());
         if (first) setLoading(false);
         first = false;
         return;
@@ -145,12 +165,13 @@ export default function PainelDashboardPage() {
         );
         if (cancelled) return;
         setMetrics(data);
-        setUsingApi(true);
-        setDemoBanner(false);
-      } catch {
+        setLoadError(null);
+      } catch (err) {
         if (cancelled) return;
-        setUsingApi(false);
-        setDemoBanner(true);
+        setMetrics(null);
+        setLoadError(
+          lojistaApiLoadError(err instanceof Error ? err.message : undefined),
+        );
       } finally {
         if (!cancelled && first) setLoading(false);
         first = false;
@@ -168,38 +189,29 @@ export default function PainelDashboardPage() {
   }, [de, ate]);
 
   const allPerf = useMemo((): ProductPerf[] => {
-    if (usingApi && metrics) {
-      return metrics.topProducts.map((p) => ({
-        productId: p.productId,
-        nome: p.nome,
-        categoria: p.categoria,
-        contatos: p.contatos,
-        interesses: p.interesses,
-        retornos: p.retornos,
-        receitaCents: p.receitaCents,
-      }));
-    }
-    return getProductPerformance(period);
-  }, [usingApi, metrics, period]);
+    if (!metrics) return [];
+    return metrics.topProducts.map((p) => ({
+      productId: p.productId,
+      nome: p.nome,
+      categoria: p.categoria,
+      contatos: p.contatos,
+      interesses: p.interesses,
+      retornos: p.retornos,
+      receitaCents: p.receitaCents,
+    }));
+  }, [metrics]);
 
   const productOptions = useMemo(() => {
-    if (usingApi && metrics) {
-      return metrics.topProducts
-        .filter((p) => categoria === 'todas' || p.categoria === categoria)
-        .map((p) => ({ id: p.productId, nome: p.nome, categoria: p.categoria }));
-    }
-    return categoria === 'todas'
-      ? MOCK_PRODUCTS
-      : MOCK_PRODUCTS.filter((p) => p.categoria === categoria);
-  }, [usingApi, metrics, categoria]);
+    if (!metrics) return [];
+    return metrics.topProducts
+      .filter((p) => categoria === 'todas' || p.categoria === categoria)
+      .map((p) => ({ id: p.productId, nome: p.nome, categoria: p.categoria }));
+  }, [metrics, categoria]);
 
   const categoryOptions = useMemo(() => {
-    if (usingApi && metrics) {
-      const set = new Set(metrics.categories.map((c) => c.categoria));
-      return [...set];
-    }
-    return [...PRODUCT_CATEGORIES];
-  }, [usingApi, metrics]);
+    if (!metrics) return [];
+    return [...new Set(metrics.categories.map((c) => c.categoria))];
+  }, [metrics]);
 
   const filteredPerf = useMemo(
     () => filterProductPerformance(allPerf, categoria, product),
@@ -259,10 +271,6 @@ export default function PainelDashboardPage() {
         ? totals.retornos / totals.contatos
         : 0;
 
-  const readyToContact =
-    usingApi && metrics ? metrics.kpis.readyToContact : undefined;
-  const pendingRevenueCents =
-    usingApi && metrics ? metrics.kpis.pendingRevenueCents : undefined;
   const commissionCents =
     usingApi && metrics ? metrics.kpis.commissionCents : undefined;
   const merchantRecoveredCents =
@@ -327,7 +335,7 @@ export default function PainelDashboardPage() {
     PERIOD_CHIPS.find((chip) => chip.key === period)?.label ?? period;
 
   function handleExport() {
-    if (exporting) return;
+    if (exporting || !metrics || loading || loadError) return;
     setExporting(true);
     try {
       exportDashboardPdf({
@@ -357,38 +365,27 @@ export default function PainelDashboardPage() {
         title={ownerFirstName ? `Olá, ${ownerFirstName}` : 'Dashboard'}
         subtitle="Acompanhe o que está voltando — e o próximo passo para recuperar vendas."
         actions={
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-[var(--shadow-soft)] transition hover:bg-muted disabled:opacity-60"
-          >
-            {exporting ? 'Gerando PDF…' : 'Exportar PDF'}
-          </button>
+          usingApi && !loading && !loadError ? (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-[var(--shadow-soft)] transition hover:bg-muted disabled:opacity-60"
+            >
+              {exporting ? 'Gerando PDF…' : 'Exportar PDF'}
+            </button>
+          ) : null
         }
       />
 
-      {demoBanner && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              Seu painel ainda está vazio de vendas reais
-            </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Importe a base da loja — é o caminho mais curto até a 1ª recuperação.
-            </p>
-          </div>
-          <Link
-            href="/painel/clientes?import=1"
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-          >
-            Importar agora
-          </Link>
+      {loadError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {loadError}
         </div>
       )}
 
       {usingApi &&
-        !demoBanner &&
+        !loadError &&
         (merchantRecoveredCents ?? 0) === 0 &&
         (salesConfirmed ?? 0) === 0 && (
           <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
@@ -499,14 +496,20 @@ export default function PainelDashboardPage() {
         <p className="mt-3 text-xs text-muted-foreground">
           {loading
             ? 'Carregando métricas…'
-            : <>
-                Filtrando por <span className="font-medium text-foreground">{filterHint}</span>
-                {usingApi ? ' · dados da sua loja' : ' · demonstração'}
-              </>}
+            : loadError
+              ? 'Não foi possível atualizar as métricas.'
+              : <>
+                  Filtrando por <span className="font-medium text-foreground">{filterHint}</span>
+                  {usingApi ? ' · dados da sua loja' : null}
+                </>}
         </p>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <KpiCard
           emphasis
           label="Recuperado (lojista)"
@@ -546,19 +549,6 @@ export default function PainelDashboardPage() {
         <KpiCard
           label="Mensagens enviadas"
           value={totals.contatos.toLocaleString('pt-BR')}
-        />
-        <KpiCard
-          label="Prontos para recuperar"
-          value={
-            readyToContact != null
-              ? readyToContact.toLocaleString('pt-BR')
-              : '—'
-          }
-          hint={
-            pendingRevenueCents != null
-              ? `${formatCurrencyCents(pendingRevenueCents)} em potencial`
-              : 'aguardando envio'
-          }
         />
       </section>
 
@@ -611,15 +601,10 @@ export default function PainelDashboardPage() {
         <section className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] sm:p-5">
           <h2 className="text-sm font-semibold text-foreground">Funil de recuperação</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Contatados → interessados → checkout → pago
+            Interessados → checkout → pago
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-            {[
-              { label: 'Contatados', value: funnel.contacted, emphasis: false },
-              { label: 'Interessados', value: funnel.interested, emphasis: false },
-              { label: 'Checkouts', value: funnel.checkoutsSent, emphasis: false },
-              { label: 'Pagos', value: funnel.checkoutsPaid, emphasis: true },
-            ].map((step) => (
+          <div className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-3">
+            {merchantVisibleFunnelSteps(funnel).map((step) => (
               <div
                 key={step.label}
                 className={`rounded-xl px-3 py-3 ${
@@ -870,6 +855,8 @@ export default function PainelDashboardPage() {
           )}
         </div>
       </section>
+    </>
+      )}
     </div>
   );
 }
