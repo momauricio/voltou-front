@@ -7,6 +7,10 @@ import {
   type TransparentPaymentResult,
 } from '@/lib/api';
 import {
+  CREDIT_CARD_AVISTA_NOTICE,
+  creditCardMaxInstallments,
+} from '@/lib/credit-card-max-installments';
+import {
   MP_BRICK_LOAD_ERROR,
   MP_BRICK_LOAD_TIMEOUT_MS,
   isMercadoPagoResource,
@@ -94,6 +98,8 @@ export function TransparentCheckoutBrick({
   const [brickReady, setBrickReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const amount = Number((amountCents / 100).toFixed(2));
+  // Brick shows “Parcelamento disponível” whenever maxInstallments > 1.
+  const maxInstallments = creditCardMaxInstallments(amountCents);
   const deliveryBlocked =
     fulfillmentMethod === 'delivery' &&
     !isShippingAddressComplete(shippingAddress);
@@ -164,6 +170,11 @@ export function TransparentCheckoutBrick({
       >
         {payHint}
       </div>
+      {maxInstallments < 2 ? (
+        <p className="mx-3 mt-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+          {CREDIT_CARD_AVISTA_NOTICE}
+        </p>
+      ) : null}
       {loadError ? (
         <p className="mx-3 my-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {loadError}
@@ -182,7 +193,7 @@ export function TransparentCheckoutBrick({
             paymentMethods: {
               creditCard: 'all',
               bankTransfer: 'all',
-              maxInstallments: 12,
+              maxInstallments,
             },
             visual: {
               style: {
