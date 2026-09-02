@@ -33,4 +33,14 @@ describe('contentSecurityPolicy', () => {
     assert.ok(connectSrc?.includes("https:"));
     assert.ok(fontSrc?.includes("https:"));
   });
+
+  it('allows Google Identity Services scripts and frames for Continuar com Google', () => {
+    const policy = contentSecurityPolicy();
+    const scriptSrc = directive(policy, 'script-src');
+    const frameSrc = directive(policy, 'frame-src');
+    assert.ok(scriptSrc, 'script-src must be present');
+    assert.ok(frameSrc, 'frame-src must be present');
+    assert.match(scriptSrc, /https:\/\/accounts\.google\.com/);
+    assert.match(frameSrc, /https:\/\/accounts\.google\.com/);
+  });
 });

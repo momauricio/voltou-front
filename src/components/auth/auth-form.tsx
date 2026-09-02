@@ -1,18 +1,38 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { GoogleContinueButton } from '@/components/auth/google-continue-button';
+import {
+  BR_MOBILE_NATIONAL_PLACEHOLDER,
+  formatBrMobileNational,
+  nationalBrMobileToE164,
+} from '@/lib/br-mobile-national';
 import { formatCnpj, isValidCnpj, stripCnpj } from '@/lib/cnpj';
-import { loginAccount, registerAccount, persistClientSession } from '@/lib/api';
+import {
+  getCnpjStatus,
+  googleAuth,
+  isLoginResponse,
+  loginAccount,
+  persistClientSession,
+  registerAccount,
+} from '@/lib/api';
+import {
+  CNPJ_INACTIVE_MESSAGE,
+  assertCnpjActiveForSignup,
+  buildGoogleAuthPayload,
+  buildLoginPayload,
+  buildRegisterPayload,
+  formatLojistaLoginIdentifierInput,
+  parseLojistaLoginIdentifier,
+} from '@/lib/lojista-signup';
 import {
   lojistaLoginOutcome,
   STAFF_LOGIN_PATH,
 } from '@/lib/staff-crm';
 
 type Tab = 'entrar' | 'criar';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function EyeIcon() {
   return (
@@ -60,29 +80,122 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [whatsapp, setWhatsapp] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [storeName, setStoreName] = useState('');
   const [cnpj, setCnpj] = useState('');
+  const [cnpjLookupError, setCnpjLookupError] = useState<string | null>(null);
 
   const cnpjDigits = useMemo(() => stripCnpj(cnpj), [cnpj]);
+
+  useEffect(() => {
+    if (tab !== 'criar' || !isValidCnpj(cnpjDigits)) {
+      setCnpjLookupError(null);
+      return;
+    }
+    let cancelled = false;
+    void assertCnpjActiveForSignup(cnpjDigits, getCnpjStatus).then((result) => {
+      if (cancelled) return;
+      setCnpjLookupError(result.ok ? null : result.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, cnpjDigits]);
+
+  async function finishLojistaLogin(result: {
+    accessToken: string;
+    user: { tenantId: string; storeId: string | null; role?: 'staff' | 'owner' };
+  }) {
+    const outcome = lojistaLoginOutcome(result.user.role);
+    if (outcome.action === 'reject') {
+      router.push(`${STAFF_LOGIN_PATH}?aviso=loja`);
+      return;
+    }
+    await persistClientSession(result);
+    router.push(outcome.href);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!EMAIL_RE.test(email.trim())) {
-      setError('Informe um email válido.');
+    if (tab === 'criar') {
+      const parsed = buildRegisterPayload({
+        ownerName,
+        storeName,
+        cnpj,
+        email,
+        password,
+        whatsapp,
+      });
+      if (!parsed.ok) {
+        setError(parsed.error);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const cnpjGate = await assertCnpjActiveForSignup(
+          parsed.body.cnpj,
+          getCnpjStatus,
+        );
+        if (!cnpjGate.ok) {
+          setError(cnpjGate.error);
+          setCnpjLookupError(cnpjGate.error);
+          return;
+        }
+        const result = await registerAccount(parsed.body);
+        router.push(
+          `/verificar-email?email=${encodeURIComponent(result.email)}`,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    const identifier = parseLojistaLoginIdentifier(loginId);
+    if (identifier.kind === 'invalid') {
+      setError(identifier.error);
       return;
     }
     if (password.length < 8) {
       setError('A senha deve ter pelo menos 8 caracteres.');
       return;
     }
+    const payload = buildLoginPayload({ identifier, password });
+    if (!payload) {
+      setError('Informe o email ou o WhatsApp.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await loginAccount(payload);
+      await finishLojistaLogin(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onGoogleIdToken(idToken: string) {
+    setError(null);
 
     if (tab === 'criar') {
+      const phoneE164 = nationalBrMobileToE164(whatsapp);
+      if (!phoneE164) {
+        setError('Informe um celular no formato (11) 9 9999-9999.');
+        return;
+      }
       if (!ownerName.trim()) {
         setError('Informe o nome do dono.');
         return;
@@ -95,35 +208,54 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         setError('CNPJ inválido. Confira os dígitos.');
         return;
       }
+
+      setLoading(true);
+      try {
+        const cnpjGate = await assertCnpjActiveForSignup(
+          cnpjDigits,
+          getCnpjStatus,
+        );
+        if (!cnpjGate.ok) {
+          setError(cnpjGate.error);
+          setCnpjLookupError(cnpjGate.error);
+          return;
+        }
+        const result = await googleAuth(
+          buildGoogleAuthPayload({
+            idToken,
+            mode: 'criar',
+            ownerName,
+            storeName,
+            cnpj: cnpjDigits,
+            phoneE164,
+          }),
+        );
+        if (isLoginResponse(result)) {
+          await finishLojistaLogin(result);
+          return;
+        }
+        router.push(
+          `/verificar-email?email=${encodeURIComponent(result.email)}`,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
 
     setLoading(true);
     try {
-      if (tab === 'criar') {
-        const result = await registerAccount({
-          ownerName: ownerName.trim(),
-          storeName: storeName.trim(),
-          cnpj: cnpjDigits,
-          email: email.trim().toLowerCase(),
-          password,
-        });
-        router.push(
-          `/verificar-email?email=${encodeURIComponent(result.email)}`,
-        );
+      const result = await googleAuth(
+        buildGoogleAuthPayload({ idToken, mode: 'entrar' }),
+      );
+      if (!isLoginResponse(result)) {
+        setError('Conclua o cadastro na aba Criar conta.');
+        setTab('criar');
         return;
       }
-
-      const result = await loginAccount({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      const outcome = lojistaLoginOutcome(result.user.role);
-      if (outcome.action === 'reject') {
-        router.push(`${STAFF_LOGIN_PATH}?aviso=loja`);
-        return;
-      }
-      await persistClientSession(result);
-      router.push(outcome.href);
+      await finishLojistaLogin(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
     } finally {
@@ -172,9 +304,30 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         </button>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4" noValidate>
         {tab === 'criar' && (
           <>
+            <div>
+              <label htmlFor="signupWhatsapp" className={labelClass}>
+                WhatsApp
+              </label>
+              <input
+                id="signupWhatsapp"
+                name="whatsapp"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(formatBrMobileNational(e.target.value))}
+                placeholder={BR_MOBILE_NATIONAL_PLACEHOLDER}
+                className={fieldClass}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Celular pessoal do cadastro. O WhatsApp da loja fica opcional no
+                Perfil.
+              </p>
+            </div>
             <div>
               <label htmlFor="ownerName" className={labelClass}>
                 Nome do dono
@@ -205,44 +358,46 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="cnpj" className={labelClass}>
-                CNPJ
-              </label>
-              <input
-                id="cnpj"
-                name="cnpj"
-                inputMode="numeric"
-                autoComplete="off"
-                value={cnpj}
-                onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-                placeholder="00.000.000/0000-00"
-                className={fieldClass}
-                required
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Precisa ser um CNPJ válido e ativo na Receita Federal.
-              </p>
-            </div>
           </>
         )}
 
-        <div>
-          <label htmlFor="email" className={labelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@loja.com.br"
-            className={fieldClass}
-            required
-          />
-        </div>
+        {tab === 'entrar' ? (
+          <div>
+            <label htmlFor="loginIdentifier" className={labelClass}>
+              Email ou WhatsApp
+            </label>
+            <input
+              id="loginIdentifier"
+              name="loginIdentifier"
+              type="text"
+              autoComplete="username"
+              value={loginId}
+              onChange={(e) =>
+                setLoginId(formatLojistaLoginIdentifierInput(e.target.value))
+              }
+              placeholder="voce@loja.com.br"
+              className={fieldClass}
+              required
+            />
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="email" className={labelClass}>
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="voce@loja.com.br"
+              className={fieldClass}
+              required
+            />
+          </div>
+        )}
 
         <div>
           <div className="flex items-center justify-between gap-3">
@@ -284,6 +439,35 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
           </div>
         </div>
 
+        {tab === 'criar' && (
+          <div>
+            <label htmlFor="cnpj" className={labelClass}>
+              CNPJ
+            </label>
+            <input
+              id="cnpj"
+              name="cnpj"
+              inputMode="numeric"
+              autoComplete="off"
+              value={cnpj}
+              onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+              placeholder="00.000.000/0000-00"
+              className={fieldClass}
+              required
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Precisa estar ativo na Receita. Consulta gratuita.
+            </p>
+            {cnpjLookupError && (
+              <p role="alert" className="mt-1 text-xs text-red-700">
+                {cnpjLookupError === CNPJ_INACTIVE_MESSAGE
+                  ? CNPJ_INACTIVE_MESSAGE
+                  : cnpjLookupError}
+              </p>
+            )}
+          </div>
+        )}
+
         {error && (
           <p
             role="alert"
@@ -295,7 +479,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (tab === 'criar' && cnpjLookupError === CNPJ_INACTIVE_MESSAGE)}
           className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading
@@ -305,6 +489,14 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
               : 'Criar conta grátis'}
         </button>
       </form>
+
+      <div className="mt-4">
+        <GoogleContinueButton
+          disabled={loading}
+          onIdToken={(token) => void onGoogleIdToken(token)}
+          onError={setError}
+        />
+      </div>
     </div>
   );
 }
