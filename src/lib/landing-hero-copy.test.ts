@@ -16,7 +16,10 @@ function extractH1(source: string): string {
 describe('homepage hero copy', () => {
   it('locks the H1 to the 2ª venda line without puxar', () => {
     const h1 = extractH1(hero);
+    assert.match(h1, /A 1ª venda você fez no balcão/);
     assert.match(h1, /A 2ª venda a Voltou faz por você/);
     assert.doesNotMatch(h1, /puxa|puxar/i);
+    assert.doesNotMatch(h1, /ninguém puxa/i);
+    assert.doesNotMatch(hero, /puxa|puxar/i);
   });
 });
