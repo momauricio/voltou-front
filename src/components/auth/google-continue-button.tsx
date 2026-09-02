@@ -1,8 +1,11 @@
 'use client';
 
 import Script from 'next/script';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { publicGoogleClientId } from '@/lib/lojista-signup';
+
+export const GOOGLE_LOAD_ERROR =
+  'Não foi possível carregar o Google. Recarregue a página.';
 
 type GoogleIdConfig = {
   client_id: string;
@@ -46,6 +49,9 @@ export function GoogleContinueButton({
   const buttonRef = useRef<HTMLDivElement>(null);
   const onIdTokenRef = useRef(onIdToken);
   const onErrorRef = useRef(onError);
+  const didInitRef = useRef(false);
+  const [gisReady, setGisReady] = useState(false);
+  const [gisError, setGisError] = useState<string | null>(null);
   onIdTokenRef.current = onIdToken;
   onErrorRef.current = onError;
 
@@ -53,7 +59,13 @@ export function GoogleContinueButton({
     const id = publicGoogleClientId();
     const host = buttonRef.current;
     const gis = window.google?.accounts?.id;
-    if (!id || !host || !gis) return;
+    if (!id || !host || !gis) return false;
+
+    if (didInitRef.current) {
+      setGisReady(true);
+      setGisError(null);
+      return true;
+    }
 
     gis.initialize({
       client_id: id,
@@ -79,7 +91,17 @@ export function GoogleContinueButton({
       locale: 'pt-BR',
       width,
     });
+    didInitRef.current = true;
+    setGisReady(true);
+    setGisError(null);
+    return true;
   }, []);
+
+  useEffect(() => {
+    if (window.google?.accounts?.id) {
+      initGis();
+    }
+  }, [initGis]);
 
   if (!clientId) return null;
 
@@ -95,15 +117,30 @@ export function GoogleContinueButton({
         aria-label="Continuar com Google"
       >
         <div ref={buttonRef} className="flex min-h-11 w-full justify-center">
-          <span className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-card text-sm font-semibold text-foreground">
-            Continuar com Google
-          </span>
+          {!gisReady && (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-card text-sm font-semibold text-muted-foreground"
+            >
+              {gisError ? 'Google indisponível' : 'Carregando Google…'}
+            </button>
+          )}
         </div>
       </div>
+      {gisError && (
+        <p role="alert" className="text-xs text-red-700">
+          {gisError}
+        </p>
+      )}
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onLoad={initGis}
+        onError={() => {
+          setGisError(GOOGLE_LOAD_ERROR);
+          onErrorRef.current?.(GOOGLE_LOAD_ERROR);
+        }}
       />
     </div>
   );

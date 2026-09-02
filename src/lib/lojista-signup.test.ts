@@ -87,7 +87,16 @@ describe('CNPJ ativo gate', () => {
       isCnpjStatusActive({ descricao_situacao_cadastral: 'SUSPENSA' }),
       false,
     );
+    assert.equal(
+      isCnpjStatusActive({ descricao_situacao_cadastral: 'INATIVA' }),
+      false,
+    );
+    assert.equal(
+      isCnpjStatusActive({ descricao_situacao_cadastral: 'INAPTA' }),
+      false,
+    );
     assert.equal(isCnpjStatusActive({ situacao_cadastral: 2 }), true);
+    assert.equal(isCnpjStatusActive({ situacao_cadastral: '02' }), true);
     assert.equal(isCnpjStatusActive({ situacao_cadastral: '08' }), false);
     assert.equal(isCnpjStatusActive({}), false);
   });
@@ -175,10 +184,28 @@ describe('Google GIS on lojista /entrar', () => {
     assert.match(googleBtn, /publicGoogleClientId/);
     assert.match(googleBtn, /Continuar com Google/);
     assert.match(googleBtn, /accounts\.google\.com\/gsi\/client/);
+    assert.match(googleBtn, /onError=/);
+    assert.match(googleBtn, /useEffect/);
+    assert.match(googleBtn, /Carregando Google/);
     assert.doesNotMatch(googleBtn, /fake-google-client/i);
     assert.match(authForm, /GoogleContinueButton/);
     assert.match(api, /export async function googleAuth/);
     assert.match(api, /\/auth\/google/);
+
+    const helper = readFileSync(
+      new URL('./lojista-signup.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(
+      helper,
+      /NEXT_PUBLIC_GOOGLE_CLIENT_ID:\s*process\.env\.NEXT_PUBLIC_GOOGLE_CLIENT_ID/,
+    );
+  });
+
+  it('keeps a new-account Google token so Entrar does not drop the credential', () => {
+    assert.match(authForm, /pendingGoogleIdToken/);
+    assert.match(authForm, /Conta Google nova/);
+    assert.match(authForm, /completeGoogleSignup/);
   });
 
   it('sends idToken plus signup fields only for a new Google account', () => {

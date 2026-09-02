@@ -89,6 +89,9 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
   const [storeName, setStoreName] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [cnpjLookupError, setCnpjLookupError] = useState<string | null>(null);
+  const [pendingGoogleIdToken, setPendingGoogleIdToken] = useState<string | null>(
+    null,
+  );
 
   const cnpjDigits = useMemo(() => stripCnpj(cnpj), [cnpj]);
 
@@ -120,11 +123,71 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
     router.push(outcome.href);
   }
 
+  async function completeGoogleSignup(idToken: string) {
+    const phoneE164 = nationalBrMobileToE164(whatsapp);
+    if (!phoneE164) {
+      setError('Informe um celular no formato (11) 9 9999-9999.');
+      return;
+    }
+    if (!ownerName.trim()) {
+      setError('Informe o nome do dono.');
+      return;
+    }
+    if (!storeName.trim()) {
+      setError('Informe o nome da loja.');
+      return;
+    }
+    if (!isValidCnpj(cnpjDigits)) {
+      setError('CNPJ inválido. Confira os dígitos.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const cnpjGate = await assertCnpjActiveForSignup(
+        cnpjDigits,
+        getCnpjStatus,
+      );
+      if (!cnpjGate.ok) {
+        setError(cnpjGate.error);
+        setCnpjLookupError(cnpjGate.error);
+        return;
+      }
+      const result = await googleAuth(
+        buildGoogleAuthPayload({
+          idToken,
+          mode: 'criar',
+          ownerName,
+          storeName,
+          cnpj: cnpjDigits,
+          phoneE164,
+        }),
+      );
+      setPendingGoogleIdToken(null);
+      if (isLoginResponse(result)) {
+        await finishLojistaLogin(result);
+        return;
+      }
+      router.push(
+        `/verificar-email?email=${encodeURIComponent(result.email)}`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (tab === 'criar') {
+      if (pendingGoogleIdToken) {
+        await completeGoogleSignup(pendingGoogleIdToken);
+        return;
+      }
+
       const parsed = buildRegisterPayload({
         ownerName,
         storeName,
@@ -191,57 +254,8 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
     setError(null);
 
     if (tab === 'criar') {
-      const phoneE164 = nationalBrMobileToE164(whatsapp);
-      if (!phoneE164) {
-        setError('Informe um celular no formato (11) 9 9999-9999.');
-        return;
-      }
-      if (!ownerName.trim()) {
-        setError('Informe o nome do dono.');
-        return;
-      }
-      if (!storeName.trim()) {
-        setError('Informe o nome da loja.');
-        return;
-      }
-      if (!isValidCnpj(cnpjDigits)) {
-        setError('CNPJ inválido. Confira os dígitos.');
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const cnpjGate = await assertCnpjActiveForSignup(
-          cnpjDigits,
-          getCnpjStatus,
-        );
-        if (!cnpjGate.ok) {
-          setError(cnpjGate.error);
-          setCnpjLookupError(cnpjGate.error);
-          return;
-        }
-        const result = await googleAuth(
-          buildGoogleAuthPayload({
-            idToken,
-            mode: 'criar',
-            ownerName,
-            storeName,
-            cnpj: cnpjDigits,
-            phoneE164,
-          }),
-        );
-        if (isLoginResponse(result)) {
-          await finishLojistaLogin(result);
-          return;
-        }
-        router.push(
-          `/verificar-email?email=${encodeURIComponent(result.email)}`,
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
-      } finally {
-        setLoading(false);
-      }
+      setPendingGoogleIdToken(idToken);
+      await completeGoogleSignup(idToken);
       return;
     }
 
@@ -251,7 +265,10 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         buildGoogleAuthPayload({ idToken, mode: 'entrar' }),
       );
       if (!isLoginResponse(result)) {
-        setError('Conclua o cadastro na aba Criar conta.');
+        setPendingGoogleIdToken(idToken);
+        setError(
+          'Conta Google nova. Preencha WhatsApp, nome, loja e CNPJ e toque Continuar com Google de novo — ou Criar conta grátis.',
+        );
         setTab('criar');
         return;
       }
@@ -375,7 +392,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
               onChange={(e) =>
                 setLoginId(formatLojistaLoginIdentifierInput(e.target.value))
               }
-              placeholder="voce@loja.com.br"
+              placeholder="voce@loja.com.br ou (11) 9 9999-9999"
               className={fieldClass}
               required
             />
@@ -394,7 +411,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@loja.com.br"
               className={fieldClass}
-              required
+              required={!pendingGoogleIdToken}
             />
           </div>
         )}
@@ -424,8 +441,8 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={tab === 'criar' ? 'Mínimo 8 caracteres' : undefined}
               className={`${fieldClass} mt-0 pr-11`}
-              required
-              minLength={8}
+              required={tab === 'entrar' || !pendingGoogleIdToken}
+              minLength={pendingGoogleIdToken && tab === 'criar' ? undefined : 8}
             />
             <button
               type="button"
@@ -460,9 +477,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
             </p>
             {cnpjLookupError && (
               <p role="alert" className="mt-1 text-xs text-red-700">
-                {cnpjLookupError === CNPJ_INACTIVE_MESSAGE
-                  ? CNPJ_INACTIVE_MESSAGE
-                  : cnpjLookupError}
+                {cnpjLookupError}
               </p>
             )}
           </div>
@@ -492,7 +507,10 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
 
       <div className="mt-4">
         <GoogleContinueButton
-          disabled={loading}
+          disabled={
+            loading ||
+            (tab === 'criar' && cnpjLookupError === CNPJ_INACTIVE_MESSAGE)
+          }
           onIdToken={(token) => void onGoogleIdToken(token)}
           onError={setError}
         />

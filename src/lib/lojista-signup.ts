@@ -14,7 +14,11 @@ export const CNPJ_LOOKUP_ERROR_MESSAGE =
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function publicGoogleClientId(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = {
+    // Next only inlines a static `process.env.NEXT_PUBLIC_*` member access
+    // in the client bundle. Do not read it via `process.env` as an object.
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  },
 ): string | null {
   const raw = env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
   return raw ? raw : null;
@@ -41,7 +45,8 @@ export function isCnpjStatusActive(body: unknown): boolean {
       record.situacao_cadastral,
   );
   if (!situation) return false;
-  return situation.includes('ATIVA') || situation === '2';
+  // Exact tokens only — `INATIVA`.includes('ATIVA') is true.
+  return situation === 'ATIVA' || situation === '2' || situation === '02';
 }
 
 export async function assertCnpjActiveForSignup(
