@@ -12,6 +12,10 @@ import {
   saveStoreRules,
   type StoreRules,
 } from '@/lib/api';
+import {
+  formatDateTimePtBr,
+  formatMerchantVisibleDate,
+} from '@/lib/lojista-panel-ux';
 
 const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
@@ -108,7 +112,14 @@ function applyRules(
   if (data.maxDescontoUmProduto) setters.setMaxDescontoUmProduto(data.maxDescontoUmProduto);
   if (data.maxDescontoDoisOuMais) setters.setMaxDescontoDoisOuMais(data.maxDescontoDoisOuMais);
   if (typeof data.aniversario === 'boolean') setters.setAniversario(data.aniversario);
-  if (data.cupons) setters.setCupons(data.cupons);
+  if (data.cupons) {
+    setters.setCupons(
+      data.cupons.map((c) => ({
+        ...c,
+        validade: formatMerchantVisibleDate(c.validade),
+      })),
+    );
+  }
 }
 
 export default function RegrasPage() {
@@ -138,6 +149,7 @@ export default function RegrasPage() {
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'blocked'>(
     'loading',
   );
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [tenantCtx, setTenantCtx] = useState<{
     tenantId: string;
     storeId: string;
@@ -171,9 +183,10 @@ export default function RegrasPage() {
       if (ctx.tenantId && ctx.storeId) {
         setTenantCtx({ tenantId: ctx.tenantId, storeId: ctx.storeId });
         try {
-          const { rules } = await getStoreRules(ctx.tenantId, ctx.storeId);
+          const { rules, updatedAt: at } = await getStoreRules(ctx.tenantId, ctx.storeId);
           if (cancelled) return;
           if (rules) applyRules(rules, setters);
+          setUpdatedAt(at);
           setLoadState('ready');
           return;
         } catch (err) {
@@ -223,7 +236,9 @@ export default function RegrasPage() {
         id: crypto.randomUUID(),
         codigo: novoCodigo.trim().toUpperCase(),
         desconto: formatDescontoPct(pct),
-        validade: novaValidade.trim() || 'Sem validade',
+        validade: formatMerchantVisibleDate(
+          novaValidade.trim() || 'Sem validade',
+        ),
       },
     ]);
     setNovoCodigo('');
@@ -264,7 +279,8 @@ export default function RegrasPage() {
         );
         return;
       }
-      await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
+      const saved = await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
+      setUpdatedAt(saved.updatedAt);
       setLoadState('ready');
       setSalvo(true);
       setTimeout(() => setSalvo(false), 3000);
@@ -286,6 +302,11 @@ export default function RegrasPage() {
         title="Regras"
         subtitle="Configure entrega, avisos de pedido e como a Voltou conversa com seus clientes."
       />
+      {updatedAt ? (
+        <p className="text-xs text-muted-foreground">
+          Atualizado em {formatDateTimePtBr(updatedAt)}
+        </p>
+      ) : null}
 
       {loadState !== 'ready' && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -504,7 +525,9 @@ export default function RegrasPage() {
             <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">{c.codigo}</p>
-                <p className="text-xs text-muted-foreground">Válido até {c.validade}</p>
+                <p className="text-xs text-muted-foreground">
+                  Válido até {formatMerchantVisibleDate(c.validade)}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-primary">
@@ -601,7 +624,8 @@ export default function RegrasPage() {
         <div className="flex items-center gap-3">
           {salvo && (
             <span className="rounded-xl border border-success/30 bg-success/10 px-3.5 py-2 text-sm font-medium text-success shadow-[var(--shadow-soft)]">
-              Salvo na conta da loja.
+              Salvo na conta da loja
+              {updatedAt ? ` em ${formatDateTimePtBr(updatedAt)}` : '.'}
             </span>
           )}
           <button

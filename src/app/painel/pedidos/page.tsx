@@ -11,6 +11,10 @@ import {
   updateOrderFulfillment,
   type MerchantOrder,
 } from '@/lib/api';
+import {
+  formatDateTimePtBr,
+  merchantOrderRefs,
+} from '@/lib/lojista-panel-ux';
 
 type FulfillmentFilter = 'todos' | 'awaiting' | 'ready' | 'shipped' | 'done';
 type FulfillmentAction = 'ready' | 'shipped' | 'done';
@@ -45,16 +49,7 @@ function formatCurrency(cents: number) {
 }
 
 function formatPaidAt(iso: string | null) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTimePtBr(iso);
 }
 
 function methodLabel(method: string | null) {
@@ -298,7 +293,7 @@ export default function PedidosPage() {
               <table className="w-full min-w-[880px] text-left text-sm">
                 <thead className="border-b border-border bg-muted/60">
                   <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-5 py-3 font-medium">Cupom</th>
+                    <th className="px-5 py-3 font-medium">Pedido</th>
                     <th className="px-5 py-3 font-medium">Cliente</th>
                     <th className="px-5 py-3 font-medium">Itens</th>
                     <th className="px-5 py-3 font-medium">Total</th>
@@ -396,6 +391,26 @@ function PedidoActions({
   );
 }
 
+function PedidoRefs({ order }: { order: MerchantOrder }) {
+  const refs = merchantOrderRefs(order);
+  return (
+    <div>
+      <p className="font-medium text-foreground">
+        {refs.voltou.label} {refs.voltou.value}
+      </p>
+      {(refs.coupon || refs.mercadoPago) && (
+        <p className="text-xs text-muted-foreground">
+          {refs.coupon ? `${refs.coupon.label} ${refs.coupon.value}` : null}
+          {refs.coupon && refs.mercadoPago ? ' · ' : null}
+          {refs.mercadoPago
+            ? `${refs.mercadoPago.label} ${refs.mercadoPago.value}`
+            : null}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PedidoCard({ order, actionBusy, onAction, onCancel }: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
   const address = order.fulfillmentMethod === 'delivery' ? formatAddress(order) : null;
@@ -408,9 +423,8 @@ function PedidoCard({ order, actionBusy, onAction, onCancel }: PedidoActionsProp
           <p className="truncate font-medium text-foreground">
             {order.customerName || 'Cliente'}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Cupom {order.couponCode ?? '—'} · {formatPaidAt(order.paidAt)}
-          </p>
+          <PedidoRefs order={order} />
+          <p className="text-xs text-muted-foreground">{formatPaidAt(order.paidAt)}</p>
         </div>
         <StatusBadge
           label={
@@ -467,7 +481,7 @@ function PedidoRow({ order, actionBusy, onAction, onCancel }: PedidoActionsProps
   return (
     <tr className="transition hover:bg-muted/40">
       <td className="px-5 py-3.5">
-        <p className="font-medium text-foreground">{order.couponCode ?? '—'}</p>
+        <PedidoRefs order={order} />
         <p className="text-xs text-muted-foreground">{formatPaidAt(order.paidAt)}</p>
       </td>
       <td className="px-5 py-3.5">

@@ -1,4 +1,5 @@
 import { normalizeHeader, parseCsv } from '@/lib/csv-products';
+import { formatDatePtBr } from '@/lib/lojista-panel-ux';
 
 export type CustomerCsvRow = {
   nome: string;
@@ -198,9 +199,7 @@ export function parseCustomerCsv(text: string): CustomerCsvParseResult {
       telefoneDigits,
       produto: produto || '—',
       dataCompra,
-      dataCompraLabel: dataCompra
-        ? new Date(dataCompra).toLocaleDateString('pt-BR')
-        : '—',
+      dataCompraLabel: dataCompra ? formatDatePtBr(dataCompra) : '—',
     });
   }
 

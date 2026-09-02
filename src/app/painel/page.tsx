@@ -22,6 +22,7 @@ import {
 import {
   lojistaApiLoadError,
   merchantVisibleFunnelSteps,
+  formatDatePtBr,
 } from '@/lib/lojista-panel-ux';
 
 type PeriodKey = '7d' | '30d' | 'mes' | '90d';
@@ -232,12 +233,15 @@ export default function PainelDashboardPage() {
 
   const series = useMemo(() => {
     if (usingApi && metrics) {
-      return metrics.series.map((p) => ({
-        label: p.label,
-        receita: Math.round(p.receitaCents / 100),
-        envios: p.envios,
-        retornos: p.retornos,
-      }));
+      return metrics.series.map((p) => {
+        const formatted = formatDatePtBr(p.label);
+        return {
+          label: formatted === '—' ? p.label : formatted,
+          receita: Math.round(p.receitaCents / 100),
+          envios: p.envios,
+          retornos: p.retornos,
+        };
+      });
     }
     return [];
   }, [usingApi, metrics]);
@@ -584,7 +588,7 @@ export default function PainelDashboardPage() {
                       {formatCurrencyCents(s.merchantCents)}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">
-                      {new Date(s.soldAt).toLocaleDateString('pt-BR')}
+                      {formatDatePtBr(s.soldAt)}
                     </td>
                     <td className="py-2.5 text-muted-foreground">
                       {s.status === 'completed' ? 'Confirmada' : s.status}

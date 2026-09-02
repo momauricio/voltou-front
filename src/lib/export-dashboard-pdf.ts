@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { CategoryPerf, ProductPerf } from '@/lib/mock-dashboard';
 import { formatPct } from '@/lib/mock-dashboard';
+import { formatDatePtBr } from '@/lib/lojista-panel-ux';
 
 export type DashboardPdfInput = {
   periodLabel: string;
@@ -34,9 +35,7 @@ function lastAutoTableY(doc: jsPDF, fallback: number) {
 }
 
 function formatDateBr(iso: string) {
-  const [y, m, d] = iso.split('-');
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
+  return formatDatePtBr(iso);
 }
 
 function safeFilename(value: string) {

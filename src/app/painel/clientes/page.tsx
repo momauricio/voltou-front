@@ -32,6 +32,7 @@ import { mapApiCustomerSummary } from '@/lib/customers-api-adapter';
 import {
   lojistaApiLoadError,
   lojistaDemoBannerVisible,
+  formatDatePtBr,
 } from '@/lib/lojista-panel-ux';
 
 const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'danger'> = {
@@ -713,7 +714,7 @@ function ClienteCard({ cliente }: { cliente: MockCustomer }) {
           {cliente.produto}
         </p>
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-          <span>Compra {cliente.compra}</span>
+          <span>Compra {formatDatePtBr(cliente.compra)}</span>
           <span>Contato {cliente.disparo}</span>
         </p>
       </div>
@@ -747,7 +748,7 @@ function ClienteRow({ cliente }: { cliente: MockCustomer }) {
       </td>
       <td className="px-5 py-3.5">
         <Link href={detailUrl} className="text-muted-foreground transition hover:text-primary">
-          {cliente.compra}
+          {formatDatePtBr(cliente.compra)}
         </Link>
       </td>
       <td className="px-5 py-3.5">
