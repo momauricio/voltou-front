@@ -22,10 +22,10 @@ export function LandingCta() {
         </h2>
         <div className="relative mt-8 flex justify-center">
           <a
-            href="/entrar?tab=criar"
+            href="/entrar"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
-            Criar conta e cadastrar a 1ª venda
+            Criar conta e cadastrar o 1º cliente
             <span aria-hidden>→</span>
           </a>
         </div>

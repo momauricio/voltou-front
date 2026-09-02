@@ -4,7 +4,10 @@ export function LandingNav() {
   return (
     <header className="absolute inset-x-0 top-0 z-50">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo withPeriod={false} />
+        <BrandLogo
+          withPeriod={false}
+          className="[&>span:first-child]:bg-[#0e9254] [&>span:last-child]:text-[#0e9254]"
+        />
         <nav className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground sm:gap-3">
           <a href="/entrar" className="px-2 py-2 hover:text-foreground">
             Entrar
