@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, Suspense, use, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
@@ -15,6 +15,7 @@ import {
   getCustomer,
   interestSourceLabel,
   markCheckoutPaid,
+  removeCustomer,
   saleSourceLabel,
   subscribeCustomers,
   type ClienteStatus,
@@ -24,6 +25,7 @@ import {
 import {
   addApiInterest,
   createApiSale,
+  deleteApiCustomer,
   getApiCustomer,
   listApiProducts,
   markApiCheckoutPaid,
@@ -70,11 +72,13 @@ const EVENT_ICON: Record<EventType, string> = {
 type Acao = 'interesse' | 'compra' | 'historico';
 
 function ClienteDetailInner({ id }: { id: string }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [, refresh] = useReducer((n: number) => n + 1, 0);
 
   const [modalInteresse, setModalInteresse] = useState(false);
   const [modalCompra, setModalCompra] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const [produtoInteresse, setProdutoInteresse] = useState(MOCK_PRODUCTS[0].nome);
   const [notasInteresse, setNotasInteresse] = useState('');
@@ -255,6 +259,32 @@ function ClienteDetailInner({ id }: { id: string }) {
     markCheckoutPaid(checkoutId);
   }
 
+  async function handleRemoveCliente() {
+    if (
+      !window.confirm(
+        'Remover este cliente da base da loja? Esta ação não pode ser desfeita.',
+      )
+    ) {
+      return;
+    }
+
+    setRemoving(true);
+    if (usingApi && tenantCtx) {
+      try {
+        await deleteApiCustomer(tenantCtx.tenantId, id);
+        router.push('/painel/clientes');
+      } catch (err) {
+        setRemoving(false);
+        window.alert(
+          err instanceof Error ? err.message : 'Erro ao remover cliente.',
+        );
+      }
+      return;
+    }
+    removeCustomer(id);
+    router.push('/painel/clientes');
+  }
+
   async function handleToggleOptOut() {
     if (!usingApi || !tenantCtx || !apiCustomer) return;
     setOptOutBusy(true);
@@ -368,6 +398,14 @@ function ClienteDetailInner({ id }: { id: string }) {
           onClick={() => setModalCompra(true)}
           variant="outline"
         />
+        <button
+          type="button"
+          disabled={removing}
+          onClick={() => void handleRemoveCliente()}
+          className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-red-200 bg-card px-4 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60 sm:w-auto"
+        >
+          {removing ? 'Removendo…' : 'Remover'}
+        </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">

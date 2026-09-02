@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { FormEvent, Suspense, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
 import { Modal } from '@/components/painel/modal';
@@ -10,7 +10,6 @@ import {
   MOCK_PRODUCTS,
   createCustomer,
   listCustomers,
-  removeCustomer,
   subscribeCustomers,
   upsertCustomerFromImport,
   type ClienteStatus,
@@ -24,7 +23,6 @@ import {
 import { ImportCenter } from '@/components/painel/import-center';
 import {
   createApiCustomer,
-  deleteApiCustomer,
   getStoredTenantContext,
   listApiCustomers,
   listApiProducts,
@@ -40,8 +38,6 @@ const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'dang
   Inativo: 'danger',
 };
 
-type MenuAcao = 'ficha' | 'interesse' | 'historico';
-
 export default function ClientesPage() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Carregando…</div>}>
@@ -51,7 +47,6 @@ export default function ClientesPage() {
 }
 
 function ClientesPageInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [, refresh] = useReducer((n: number) => n + 1, 0);
   const [search, setSearch] = useState('');
@@ -62,8 +57,6 @@ function ClientesPageInner() {
   const [modalOpen, setModalOpen] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [importCenterOpen, setImportCenterOpen] = useState(false);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [novoNome, setNovoNome] = useState('');
@@ -142,16 +135,6 @@ function ClientesPageInner() {
     }
   }, [apiProducts]);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenId(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const usingApi = apiClientes !== null;
   const clientes = apiClientes ?? listCustomers();
 
@@ -218,21 +201,6 @@ function ClientesPageInner() {
     setNovoWhatsapp('');
     setNovoProduto(produtoOptions[0]?.nome ?? '');
     setModalOpen(false);
-  }
-
-  async function handleRemoveCliente(id: string) {
-    if (tenantCtx && usingApi) {
-      try {
-        await deleteApiCustomer(tenantCtx.tenantId, id);
-        await reloadApiCustomers();
-      } catch (err) {
-        window.alert(
-          err instanceof Error ? err.message : 'Erro ao remover cliente.',
-        );
-      }
-      return;
-    }
-    removeCustomer(id);
   }
 
   function openImport() {
@@ -308,16 +276,6 @@ function ClientesPageInner() {
     setCsvPreview([]);
     setCsvFileName(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-
-  function navigateAcao(clienteId: string, acao: MenuAcao) {
-    setMenuOpenId(null);
-    const base = `/painel/clientes/${clienteId}`;
-    if (acao === 'ficha' || acao === 'historico') {
-      router.push(acao === 'historico' ? `${base}#historico` : base);
-    } else {
-      router.push(`${base}?acao=${acao}`);
-    }
   }
 
   const fieldClass =
@@ -451,15 +409,7 @@ function ClientesPageInner() {
           </li>
         ) : (
           filtrados.map((c) => (
-            <ClienteCard
-              key={c.id}
-              cliente={c}
-              menuOpen={menuOpenId === c.id}
-              menuRef={menuOpenId === c.id ? menuRef : undefined}
-              onToggleMenu={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}
-              onNavigate={(acao) => navigateAcao(c.id, acao)}
-              onRemove={() => void handleRemoveCliente(c.id)}
-            />
+            <ClienteCard key={c.id} cliente={c} />
           ))
         )}
       </ul>
@@ -479,15 +429,7 @@ function ClientesPageInner() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtrados.map((c) => (
-                <ClienteRow
-                  key={c.id}
-                  cliente={c}
-                  menuOpen={menuOpenId === c.id}
-                  menuRef={menuOpenId === c.id ? menuRef : undefined}
-                  onToggleMenu={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}
-                  onNavigate={(acao) => navigateAcao(c.id, acao)}
-                  onRemove={() => void handleRemoveCliente(c.id)}
-                />
+                <ClienteRow key={c.id} cliente={c} />
               ))}
               {filtrados.length === 0 && (
                 <tr>
@@ -740,23 +682,7 @@ function ClientesPageInner() {
   );
 }
 
-type ClienteActionsProps = {
-  cliente: MockCustomer;
-  menuOpen: boolean;
-  menuRef?: React.RefObject<HTMLDivElement | null>;
-  onToggleMenu: () => void;
-  onNavigate: (acao: MenuAcao) => void;
-  onRemove: () => void;
-};
-
-function ClienteCard({
-  cliente,
-  menuOpen,
-  menuRef,
-  onToggleMenu,
-  onNavigate,
-  onRemove,
-}: ClienteActionsProps) {
+function ClienteCard({ cliente }: { cliente: MockCustomer }) {
   const detailUrl = `/painel/clientes/${cliente.id}`;
 
   return (
@@ -778,55 +704,17 @@ function ClienteCard({
           <span>Contato {cliente.disparo}</span>
         </p>
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <Link
-          href={detailUrl}
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-xl bg-primary/10 px-3 text-sm font-medium text-primary"
-        >
-          Ver ficha
-        </Link>
-        <div className="relative" ref={menuRef}>
-          <button
-            type="button"
-            title="Mais ações"
-            onClick={onToggleMenu}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-              <circle cx="12" cy="5" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
-              <circle cx="12" cy="19" r="1.5" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card py-1 shadow-[var(--shadow-soft)]">
-              <MenuItem label="Ver ficha" onClick={() => onNavigate('ficha')} />
-              <MenuItem label="Registrar interesse" onClick={() => onNavigate('interesse')} />
-              <MenuItem label="Ver histórico" onClick={() => onNavigate('historico')} />
-              <div className="my-1 border-t border-border" />
-              <button
-                type="button"
-                onClick={onRemove}
-                className="flex w-full px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-              >
-                Remover
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <Link
+        href={detailUrl}
+        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl bg-primary/10 px-3 text-sm font-medium text-primary"
+      >
+        Ver ficha
+      </Link>
     </li>
   );
 }
 
-function ClienteRow({
-  cliente,
-  menuOpen,
-  menuRef,
-  onToggleMenu,
-  onNavigate,
-  onRemove,
-}: ClienteActionsProps) {
+function ClienteRow({ cliente }: { cliente: MockCustomer }) {
   const detailUrl = `/painel/clientes/${cliente.id}`;
 
   return (
@@ -858,57 +746,14 @@ function ClienteRow({
         <StatusBadge label={cliente.status} tone={STATUS_TONE[cliente.status]} />
       </td>
       <td className="px-5 py-3.5">
-        <div className="flex items-center gap-1.5">
-          <Link
-            href={detailUrl}
-            title="Ver ficha"
-            className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary transition hover:bg-primary/10"
-          >
-            Ver ficha
-          </Link>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              title="Mais ações"
-              onClick={onToggleMenu}
-              className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                <circle cx="12" cy="5" r="1.5" />
-                <circle cx="12" cy="12" r="1.5" />
-                <circle cx="12" cy="19" r="1.5" />
-              </svg>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card py-1 shadow-[var(--shadow-soft)]">
-                <MenuItem label="Ver ficha" onClick={() => onNavigate('ficha')} />
-                <MenuItem label="Registrar interesse" onClick={() => onNavigate('interesse')} />
-                <MenuItem label="Ver histórico" onClick={() => onNavigate('historico')} />
-                <div className="my-1 border-t border-border" />
-                <button
-                  type="button"
-                  onClick={onRemove}
-                  className="flex w-full px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-                >
-                  Remover
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <Link
+          href={detailUrl}
+          title="Ver ficha"
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary transition hover:bg-primary/10"
+        >
+          Ver ficha
+        </Link>
       </td>
     </tr>
-  );
-}
-
-function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
-    >
-      {label}
-    </button>
   );
 }
