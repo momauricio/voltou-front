@@ -7,13 +7,11 @@ import { GoogleContinueButton } from '@/components/auth/google-continue-button';
 import {
   BR_MOBILE_NATIONAL_PLACEHOLDER,
   formatBrMobileNational,
-  nationalBrMobileToE164,
 } from '@/lib/br-mobile-national';
 import { formatCnpj, isValidCnpj, stripCnpj } from '@/lib/cnpj';
 import {
   getCnpjStatus,
   googleAuth,
-  isLoginResponse,
   loginAccount,
   persistClientSession,
   registerAccount,
@@ -25,6 +23,8 @@ import {
   buildLoginPayload,
   buildRegisterPayload,
   formatLojistaLoginIdentifierInput,
+  isGoogleSignupIncompleteError,
+  ownerPhoneNationalDigits,
   parseLojistaLoginIdentifier,
 } from '@/lib/lojista-signup';
 import {
@@ -124,8 +124,8 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
   }
 
   async function completeGoogleSignup(idToken: string) {
-    const phoneE164 = nationalBrMobileToE164(whatsapp);
-    if (!phoneE164) {
+    const ownerPhone = ownerPhoneNationalDigits(whatsapp);
+    if (!ownerPhone) {
       setError('Informe um celular no formato (11) 9 9999-9999.');
       return;
     }
@@ -160,17 +160,11 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
           ownerName,
           storeName,
           cnpj: cnpjDigits,
-          phoneE164,
+          ownerPhone,
         }),
       );
       setPendingGoogleIdToken(null);
-      if (isLoginResponse(result)) {
-        await finishLojistaLogin(result);
-        return;
-      }
-      router.push(
-        `/verificar-email?email=${encodeURIComponent(result.email)}`,
-      );
+      await finishLojistaLogin(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
     } finally {
@@ -264,7 +258,9 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
       const result = await googleAuth(
         buildGoogleAuthPayload({ idToken, mode: 'entrar' }),
       );
-      if (!isLoginResponse(result)) {
+      await finishLojistaLogin(result);
+    } catch (err) {
+      if (isGoogleSignupIncompleteError(err)) {
         setPendingGoogleIdToken(idToken);
         setError(
           'Conta Google nova. Preencha WhatsApp, nome, loja e CNPJ e toque Continuar com Google de novo — ou Criar conta grátis.',
@@ -272,8 +268,6 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         setTab('criar');
         return;
       }
-      await finishLojistaLogin(result);
-    } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
     } finally {
       setLoading(false);

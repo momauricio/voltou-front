@@ -3,6 +3,7 @@ import {
   formatBrMobileNational,
   nationalBrMobileToE164,
 } from './br-mobile-national.ts';
+import { ApiHttpError } from './api-error.ts';
 import { isValidCnpj, stripCnpj } from './cnpj.ts';
 
 export { BR_MOBILE_NATIONAL_PLACEHOLDER };
@@ -24,29 +25,16 @@ export function publicGoogleClientId(
   return raw ? raw : null;
 }
 
-function normalizeSituation(value: unknown): string {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .trim();
+/** 11 national digits. API normalizes to E.164; the UI never sends +55. */
+export function ownerPhoneNationalDigits(raw: string): string | null {
+  const e164 = nationalBrMobileToE164(raw);
+  return e164 ? e164.slice(3) : null;
 }
 
 export function isCnpjStatusActive(body: unknown): boolean {
   if (!body || typeof body !== 'object') return false;
   const record = body as Record<string, unknown>;
-  if (typeof record.active === 'boolean') return record.active;
-  if (typeof record.isActive === 'boolean') return record.isActive;
-
-  const situation = normalizeSituation(
-    record.descricao_situacao_cadastral ??
-      record.situacao ??
-      record.status ??
-      record.situacao_cadastral,
-  );
-  if (!situation) return false;
-  // Exact tokens only — `INATIVA`.includes('ATIVA') is true.
-  return situation === 'ATIVA' || situation === '2' || situation === '02';
+  return record.ok === true && record.active === true;
 }
 
 export async function assertCnpjActiveForSignup(
@@ -64,6 +52,17 @@ export async function assertCnpjActiveForSignup(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof ApiHttpError) {
+      if (err.status === 400) {
+        return { ok: false, error: 'CNPJ inválido. Confira os dígitos.' };
+      }
+      if (err.status === 503) {
+        return { ok: false, error: CNPJ_LOOKUP_ERROR_MESSAGE };
+      }
+      if (/ativo na Receita/i.test(err.message)) {
+        return { ok: false, error: CNPJ_INACTIVE_MESSAGE };
+      }
+    }
     const message = err instanceof Error ? err.message : '';
     if (/ativo na Receita/i.test(message)) {
       return { ok: false, error: CNPJ_INACTIVE_MESSAGE };
@@ -72,9 +71,16 @@ export async function assertCnpjActiveForSignup(
   }
 }
 
+export function isGoogleSignupIncompleteError(err: unknown): boolean {
+  if (!(err instanceof ApiHttpError) || err.status !== 400) return false;
+  return /nome da loja|CNPJ da loja|WhatsApp|celular|lojista|ownerPhone/i.test(
+    err.message,
+  );
+}
+
 export type LojistaLoginIdentifier =
   | { kind: 'email'; email: string }
-  | { kind: 'phone'; phoneE164: string }
+  | { kind: 'phone'; ownerPhone: string }
   | { kind: 'invalid'; error: string };
 
 export function parseLojistaLoginIdentifier(raw: string): LojistaLoginIdentifier {
@@ -89,15 +95,15 @@ export function parseLojistaLoginIdentifier(raw: string): LojistaLoginIdentifier
     }
     return { kind: 'email', email };
   }
-  const phoneE164 = nationalBrMobileToE164(trimmed);
-  if (!phoneE164) {
+  const ownerPhone = ownerPhoneNationalDigits(trimmed);
+  if (!ownerPhone) {
     return {
       kind: 'invalid',
       error:
         'Informe um email válido ou um celular no formato (11) 9 9999-9999.',
     };
   }
-  return { kind: 'phone', phoneE164 };
+  return { kind: 'phone', ownerPhone };
 }
 
 export function formatLojistaLoginIdentifierInput(raw: string): string {
@@ -108,12 +114,12 @@ export function formatLojistaLoginIdentifierInput(raw: string): string {
 export function buildLoginPayload(opts: {
   identifier: LojistaLoginIdentifier;
   password: string;
-}): { email: string; password: string } | { phoneE164: string; password: string } | null {
+}): { email: string; password: string } | { identifier: string; password: string } | null {
   if (opts.identifier.kind === 'email') {
     return { email: opts.identifier.email, password: opts.password };
   }
   if (opts.identifier.kind === 'phone') {
-    return { phoneE164: opts.identifier.phoneE164, password: opts.password };
+    return { identifier: opts.identifier.ownerPhone, password: opts.password };
   }
   return null;
 }
@@ -124,7 +130,7 @@ export type RegisterBody = {
   cnpj: string;
   email: string;
   password: string;
-  phoneE164: string;
+  ownerPhone: string;
 };
 
 export function buildRegisterPayload(input: {
@@ -139,9 +145,9 @@ export function buildRegisterPayload(input: {
   const storeName = input.storeName.trim();
   const email = input.email.trim().toLowerCase();
   const cnpj = stripCnpj(input.cnpj);
-  const phoneE164 = nationalBrMobileToE164(input.whatsapp);
+  const ownerPhone = ownerPhoneNationalDigits(input.whatsapp);
 
-  if (!phoneE164) {
+  if (!ownerPhone) {
     return {
       ok: false,
       error: 'Informe um celular no formato (11) 9 9999-9999.',
@@ -171,7 +177,7 @@ export function buildRegisterPayload(input: {
       cnpj,
       email,
       password: input.password,
-      phoneE164,
+      ownerPhone,
     },
   };
 }
@@ -181,7 +187,7 @@ export type GoogleAuthBody = {
   ownerName?: string;
   storeName?: string;
   cnpj?: string;
-  phoneE164?: string;
+  ownerPhone?: string;
 };
 
 export function buildGoogleAuthPayload(input: {
@@ -190,7 +196,7 @@ export function buildGoogleAuthPayload(input: {
   ownerName?: string;
   storeName?: string;
   cnpj?: string;
-  phoneE164?: string;
+  ownerPhone?: string;
 }): GoogleAuthBody {
   if (input.mode === 'entrar') {
     return { idToken: input.idToken };
@@ -200,6 +206,6 @@ export function buildGoogleAuthPayload(input: {
     ownerName: input.ownerName?.trim(),
     storeName: input.storeName?.trim(),
     cnpj: input.cnpj,
-    phoneE164: input.phoneE164,
+    ownerPhone: input.ownerPhone,
   };
 }

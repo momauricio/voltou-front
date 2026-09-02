@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { ApiHttpError } from './api-error.ts';
 import { isValidCnpj } from './cnpj.ts';
 import {
   CNPJ_INACTIVE_MESSAGE,
+  CNPJ_LOOKUP_ERROR_MESSAGE,
   assertCnpjActiveForSignup,
   buildGoogleAuthPayload,
   buildLoginPayload,
   buildRegisterPayload,
   formatLojistaLoginIdentifierInput,
   isCnpjStatusActive,
+  isGoogleSignupIncompleteError,
   parseLojistaLoginIdentifier,
   publicGoogleClientId,
 } from './lojista-signup.ts';
@@ -75,30 +78,19 @@ describe('lojista signup WhatsApp mask', () => {
 });
 
 describe('CNPJ ativo gate', () => {
-  it('uses the Receita copy and only accepts an active status', () => {
+  it('uses GET { ok, active } only — never razao_social or Receita fields', () => {
     assert.equal(CNPJ_INACTIVE_MESSAGE, 'CNPJ precisa estar ativo na Receita.');
-    assert.equal(isCnpjStatusActive({ active: true }), true);
-    assert.equal(isCnpjStatusActive({ active: false }), false);
+    assert.equal(isCnpjStatusActive({ ok: true, active: true }), true);
+    assert.equal(isCnpjStatusActive({ ok: true, active: false }), false);
+    assert.equal(isCnpjStatusActive({ ok: false, active: false }), false);
+    assert.equal(isCnpjStatusActive({ active: true }), false);
     assert.equal(
-      isCnpjStatusActive({ descricao_situacao_cadastral: 'ATIVA' }),
-      true,
-    );
-    assert.equal(
-      isCnpjStatusActive({ descricao_situacao_cadastral: 'SUSPENSA' }),
+      isCnpjStatusActive({ razao_social: 'ACME', descricao_situacao_cadastral: 'ATIVA' }),
       false,
     );
-    assert.equal(
-      isCnpjStatusActive({ descricao_situacao_cadastral: 'INATIVA' }),
-      false,
-    );
-    assert.equal(
-      isCnpjStatusActive({ descricao_situacao_cadastral: 'INAPTA' }),
-      false,
-    );
-    assert.equal(isCnpjStatusActive({ situacao_cadastral: 2 }), true);
-    assert.equal(isCnpjStatusActive({ situacao_cadastral: '02' }), true);
-    assert.equal(isCnpjStatusActive({ situacao_cadastral: '08' }), false);
-    assert.equal(isCnpjStatusActive({}), false);
+    assert.doesNotMatch(api, /razao_social/);
+    assert.match(api, /ok:\s*boolean/);
+    assert.match(api, /active:\s*boolean/);
   });
 
   it('blocks submit after valid check-digits when the CNPJ is not active', async () => {
@@ -106,11 +98,13 @@ describe('CNPJ ativo gate', () => {
     assert.equal(isValidCnpj(validCnpj), true);
 
     const inactive = await assertCnpjActiveForSignup(validCnpj, async () => ({
+      ok: true,
       active: false,
     }));
     assert.deepEqual(inactive, { ok: false, error: CNPJ_INACTIVE_MESSAGE });
 
     const active = await assertCnpjActiveForSignup(validCnpj, async () => ({
+      ok: true,
       active: true,
     }));
     assert.deepEqual(active, { ok: true });
@@ -122,6 +116,22 @@ describe('CNPJ ativo gate', () => {
     if (invalid.ok === false) {
       assert.match(invalid.error, /CNPJ inválido/);
     }
+
+    const badRequest = await assertCnpjActiveForSignup(validCnpj, async () => {
+      throw new ApiHttpError('CNPJ inválido.', 400);
+    });
+    assert.deepEqual(badRequest, {
+      ok: false,
+      error: 'CNPJ inválido. Confira os dígitos.',
+    });
+
+    const down = await assertCnpjActiveForSignup(validCnpj, async () => {
+      throw new ApiHttpError(
+        'Não foi possível validar o CNPJ agora. Tente novamente.',
+        503,
+      );
+    });
+    assert.deepEqual(down, { ok: false, error: CNPJ_LOOKUP_ERROR_MESSAGE });
   });
 
   it('calls GET /auth/cnpj-status before register and Google signup', () => {
@@ -141,7 +151,7 @@ describe('lojista login identifier', () => {
     });
     assert.deepEqual(parseLojistaLoginIdentifier('(11) 9 9999-9999'), {
       kind: 'phone',
-      phoneE164: '+5511999999999',
+      ownerPhone: '11999999999',
     });
     assert.equal(parseLojistaLoginIdentifier('abc').kind, 'invalid');
     assert.equal(
@@ -164,7 +174,12 @@ describe('lojista login identifier', () => {
         identifier: parseLojistaLoginIdentifier('11999999999'),
         password: 'secret-12',
       }),
-      { phoneE164: '+5511999999999', password: 'secret-12' },
+      { identifier: '11999999999', password: 'secret-12' },
+    );
+    assert.match(api, /identifier\?:\s*string/);
+    assert.doesNotMatch(
+      api.slice(api.indexOf('export type LoginPayload'), api.indexOf('export type CnpjStatusResponse')),
+      /phoneE164/,
     );
   });
 });
@@ -223,21 +238,33 @@ describe('Google GIS on lojista /entrar', () => {
         ownerName: 'Carlos',
         storeName: 'Sapataria',
         cnpj: '04252011000110',
-        phoneE164: '+5511987654321',
+        ownerPhone: '11987654321',
       }),
       {
         idToken: 'tok',
         ownerName: 'Carlos',
         storeName: 'Sapataria',
         cnpj: '04252011000110',
-        phoneE164: '+5511987654321',
+        ownerPhone: '11987654321',
       },
     );
+    assert.equal(
+      isGoogleSignupIncompleteError(
+        new ApiHttpError('Informe o nome da loja para criar a conta.', 400),
+      ),
+      true,
+    );
+    assert.equal(
+      isGoogleSignupIncompleteError(new ApiHttpError('Token inválido.', 401)),
+      false,
+    );
+    assert.match(authForm, /isGoogleSignupIncompleteError/);
+    assert.match(api, /ownerPhone\?:/);
   });
 });
 
 describe('register payload keeps cadastro WhatsApp separate from Perfil', () => {
-  it('includes phoneE164 from the national mask, not store session WhatsApp', () => {
+  it('sends ownerPhone as national digits, never +55 or store session WhatsApp', () => {
     const payload = buildRegisterPayload({
       ownerName: 'Carlos Silva',
       storeName: 'Sapataria do Carlos',
@@ -248,12 +275,19 @@ describe('register payload keeps cadastro WhatsApp separate from Perfil', () => 
     });
     assert.equal(payload.ok, true);
     if (payload.ok) {
-      assert.equal(payload.body.phoneE164, '+5511987654321');
+      assert.equal(payload.body.ownerPhone, '11987654321');
       assert.equal(payload.body.email, 'carlos@loja.com.br');
       assert.equal(payload.body.cnpj, '04252011000110');
+      assert.equal('phoneE164' in payload.body, false);
       assert.equal('sessionName' in payload.body, false);
+      assert.equal(payload.body.ownerPhone.includes('+'), false);
     }
-    assert.match(api, /phoneE164: string/);
+    assert.match(api, /ownerPhone: string/);
+    const registerType = api.slice(
+      api.indexOf('export type RegisterPayload'),
+      api.indexOf('export type RegisterResponse'),
+    );
+    assert.equal(registerType.includes('phoneE164'), false);
     assert.match(api, /export async function registerAccount/);
   });
 });

@@ -124,7 +124,7 @@ export type RegisterPayload = {
   cnpj: string;
   email: string;
   password: string;
-  phoneE164: string;
+  ownerPhone: string;
 };
 
 export type RegisterResponse = {
@@ -135,17 +135,13 @@ export type RegisterResponse = {
 
 export type LoginPayload = {
   email?: string;
-  phoneE164?: string;
+  identifier?: string;
   password: string;
 };
 
 export type CnpjStatusResponse = {
-  active?: boolean;
-  isActive?: boolean;
-  status?: string;
-  situacao?: string;
-  descricao_situacao_cadastral?: string;
-  situacao_cadastral?: string | number;
+  ok: boolean;
+  active: boolean;
 };
 
 export type GoogleAuthPayload = {
@@ -153,7 +149,7 @@ export type GoogleAuthPayload = {
   ownerName?: string;
   storeName?: string;
   cnpj?: string;
-  phoneE164?: string;
+  ownerPhone?: string;
 };
 
 export type AuthUser = {
@@ -196,7 +192,7 @@ export async function getCnpjStatus(cnpj: string) {
 }
 
 export async function googleAuth(payload: GoogleAuthPayload) {
-  return jsonFetch<LoginResponse | RegisterResponse>(`/auth/google`, {
+  return jsonFetch<LoginResponse>(`/auth/google`, {
     method: 'POST',
     body: JSON.stringify(payload),
     auth: false,
