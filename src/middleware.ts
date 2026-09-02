@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE } from '@/lib/session-cookie';
+import { isStaffRole } from '@/lib/staff-crm';
+import { readJwtRole } from '@/lib/jwt-role';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith('/painel')) {
+  const isPainel = pathname.startsWith('/painel');
+  const isEquipe = pathname.startsWith('/equipe');
+  if (!isPainel && !isEquipe) {
     return NextResponse.next();
   }
 
@@ -15,9 +19,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
+  if (isPainel && isStaffRole(readJwtRole(session))) {
+    return NextResponse.redirect(new URL('/equipe', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/painel/:path*'],
+  matcher: ['/painel/:path*', '/equipe/:path*'],
 };

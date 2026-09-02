@@ -4,10 +4,12 @@ import {
   PainelSidebar,
 } from '@/components/painel/painel-nav';
 import { OnboardingWizard } from '@/components/painel/onboarding-wizard';
+import { RedirectStaffFromPainel } from '@/components/painel/redirect-staff';
 
 export default function PainelLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh w-full text-foreground lg:flex lg:h-dvh lg:overflow-hidden">
+      <RedirectStaffFromPainel />
       <PainelSidebar />
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col bg-muted/35 lg:min-h-0 lg:overflow-y-auto">

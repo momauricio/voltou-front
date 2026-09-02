@@ -1,20 +1,18 @@
 import { assertLojistaCannotDispatch } from '@/lib/lojista-panel-policy';
+import {
+  apiErrorFromBody,
+  type ApiErrorBody,
+} from '@/lib/api-error';
+
+export type { ApiErrorBody } from '@/lib/api-error';
+export { ApiHttpError, isStaffForbiddenError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-export type ApiErrorBody = {
-  message?: string | string[];
-  error?: string;
-  statusCode?: number;
-};
 
 async function parseJson<T>(res: Response): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
   if (!res.ok) {
-    const msg = Array.isArray(data.message)
-      ? data.message.join(', ')
-      : data.message || data.error || `Erro HTTP ${res.status}`;
-    throw new Error(msg);
+    throw apiErrorFromBody(res.status, data);
   }
   return data;
 }
@@ -107,16 +105,19 @@ export type LoginPayload = {
   password: string;
 };
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  ownerName: string;
+  storeName: string;
+  tenantId: string;
+  storeId: string | null;
+  role?: 'staff' | 'owner';
+};
+
 export type LoginResponse = {
   accessToken: string;
-  user: {
-    id: string;
-    email: string;
-    ownerName: string;
-    storeName: string;
-    tenantId: string;
-    storeId: string | null;
-  };
+  user: AuthUser;
 };
 
 export async function registerAccount(payload: RegisterPayload) {
@@ -714,6 +715,20 @@ export async function createApiCheckout(payload: {
   });
 }
 
+/** Staff CRM only — lojista panel must keep using createApiCheckout (locked). */
+export async function createStaffCheckout(payload: {
+  tenantId: string;
+  storeId: string;
+  customerId: string;
+  productId: string;
+  amountCents?: number;
+}) {
+  return jsonFetch<ApiCheckout>('/checkouts', {
+    method: 'POST',
+    body: JSON.stringify({ createdBy: 'human', ...payload }),
+  });
+}
+
 // ---- Entrega e pedidos ----
 
 export type StoreFulfillmentSettings = {
@@ -1294,21 +1309,70 @@ export async function getDashboardMetrics(
 
 
 
+export type StaffStore = {
+  id: string;
+  name: string;
+  slug: string;
+  tenantId: string;
+  tenant: { id: string; name: string; slug: string };
+};
+
+export type StaffCustomer = {
+  id: string;
+  tenantId: string;
+  storeId: string;
+  displayName: string;
+  phoneMasked: string | null;
+  phoneE164: string | null;
+  lastContactedAt: string | null;
+  optedOutAt: string | null;
+  notes?: string | null;
+  createdAt: string;
+  tenant: { id: string; name: string };
+  store: { id: string; name: string; slug: string };
+};
+
+export type StaffContactChannel = 'call' | 'whatsapp' | 'other';
+
+export type StaffContactEvent = {
+  id: string;
+  type: string;
+  title: string;
+  detail: string | null;
+  occurredAt: string;
+};
+
+export async function listStaffStores() {
+  return jsonFetch<StaffStore[]>('/staff/stores', { cache: 'no-store' });
+}
+
+export async function listStaffCustomers() {
+  return jsonFetch<StaffCustomer[]>('/staff/customers', { cache: 'no-store' });
+}
+
+export async function registerStaffContact(
+  customerId: string,
+  payload: {
+    occurredAt?: string;
+    channel: StaffContactChannel;
+    note?: string;
+  },
+) {
+  return jsonFetch<StaffContactEvent>(
+    `/staff/customers/${encodeURIComponent(customerId)}/contact`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function fetchAuthMe(accessToken?: string) {
   const token = accessToken ?? getStoredAccessToken();
   if (!token) {
     throw new Error('Sessão expirada. Faça login novamente.');
   }
-  return jsonFetch<{
-    user: {
-      id: string;
-      email: string;
-      ownerName: string;
-      storeName: string;
-      tenantId: string;
-      storeId: string | null;
-    };
-  }>('/auth/me', {
+  return jsonFetch<{ user: AuthUser }>('/auth/me', {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
     auth: false,
