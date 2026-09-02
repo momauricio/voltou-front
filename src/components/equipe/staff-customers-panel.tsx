@@ -1,9 +1,10 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/painel/modal';
 import { PageHeader } from '@/components/painel/page-header';
+import { StaffForbidden } from '@/components/equipe/staff-forbidden';
 import {
   createStaffCheckout,
   ApiHttpError,
@@ -11,7 +12,7 @@ import {
   getStoredAccessToken,
   isStaffForbiddenError,
   listApiProducts,
-  listStaffCustomers,
+  listStaffStoreCustomers,
   listStaffStores,
   registerStaffContact,
   type ApiProduct,
@@ -20,7 +21,8 @@ import {
   type StaffStore,
 } from '@/lib/api';
 import {
-  LOJISTA_SESSION_MESSAGE,
+  STAFF_LOGIN_PATH,
+  formatStaffCustomerCount,
   formatStaffLastContacted,
   isStaffRole,
   parseReaisToCents,
@@ -46,13 +48,14 @@ function formatBrlCents(cents: number) {
   });
 }
 
-export default function EquipePage() {
+export function StaffCustomersPanel({ storeId }: { storeId: string }) {
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<StaffCustomer[]>([]);
   const [stores, setStores] = useState<StaffStore[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [issuedUrls, setIssuedUrls] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -71,11 +74,16 @@ export default function EquipePage() {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQ(search.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       const token = getStoredAccessToken();
       if (!token) {
-        window.location.href = '/entrar';
+        window.location.href = STAFF_LOGIN_PATH;
         return;
       }
       try {
@@ -88,7 +96,7 @@ export default function EquipePage() {
           return;
         }
         const [rows, storeRows] = await Promise.all([
-          listStaffCustomers(),
+          listStaffStoreCustomers(storeId, debouncedQ),
           listStaffStores().catch(() => [] as StaffStore[]),
         ]);
         if (cancelled) return;
@@ -99,7 +107,9 @@ export default function EquipePage() {
         if (isStaffForbiddenError(err)) {
           setForbidden(true);
         } else if (err instanceof ApiHttpError && err.status === 401) {
-          window.location.href = '/entrar';
+          window.location.href = STAFF_LOGIN_PATH;
+        } else if (err instanceof ApiHttpError && err.status === 404) {
+          setLoadError('Loja não encontrada.');
         } else {
           setLoadError(
             'Não foi possível carregar os clientes. Tente de novo.',
@@ -112,25 +122,18 @@ export default function EquipePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storeId, debouncedQ]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return customers;
-    return customers.filter((c) => {
-      const hay = [
-        c.displayName,
-        staffCustomerPhone(c),
-        c.phoneE164,
-        c.phoneMasked,
-        storeDisplayName(c),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [customers, search]);
+  const store = stores.find((row) => row.id === storeId) ?? null;
+  const title = store
+    ? storeDisplayName(store)
+    : customers[0]
+      ? storeDisplayName(customers[0])
+      : 'Loja';
+
+  const emptyLabel = search.trim()
+    ? 'Nenhum cliente encontrado.'
+    : 'Nenhum cliente ainda.';
 
   function slugFor(customer: StaffCustomer) {
     return resolveStaffStoreSlug(customer, stores);
@@ -251,30 +254,7 @@ export default function EquipePage() {
   }
 
   if (forbidden) {
-    return (
-      <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] sm:p-8">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Sessão de lojista
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {LOJISTA_SESSION_MESSAGE}
-        </p>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <Link
-            href="/painel"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
-          >
-            Ir ao painel da loja
-          </Link>
-          <Link
-            href="/entrar"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            Entrar com conta da equipe
-          </Link>
-        </div>
-      </div>
-    );
+    return <StaffForbidden />;
   }
 
   if (loadError) {
@@ -289,8 +269,14 @@ export default function EquipePage() {
 
   return (
     <div className="space-y-5">
+      <Link
+        href="/equipe"
+        className="inline-flex text-sm font-medium text-primary hover:underline"
+      >
+        ← Todas as lojas
+      </Link>
       <PageHeader
-        title="Clientes"
+        title={title}
         subtitle="A equipe Voltou registra o contato e envia o link para a segunda venda."
       />
 
@@ -301,24 +287,22 @@ export default function EquipePage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, telefone ou loja"
+            placeholder="Buscar por nome ou telefone"
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </label>
         <p className="text-xs text-muted-foreground">
-          {customers.length} {customers.length === 1 ? 'cliente' : 'clientes'}
+          {formatStaffCustomerCount(customers.length)}
         </p>
       </div>
 
       <ul className="space-y-2 lg:hidden">
-        {filtered.length === 0 ? (
+        {customers.length === 0 ? (
           <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
-            {customers.length === 0
-              ? 'Nenhum cliente ainda.'
-              : 'Nenhum cliente encontrado.'}
+            {emptyLabel}
           </li>
         ) : (
-          filtered.map((customer) => (
+          customers.map((customer) => (
             <StaffCustomerCard
               key={customer.id}
               customer={customer}
@@ -343,18 +327,17 @@ export default function EquipePage() {
 
       <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] lg:block">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-border bg-muted/60">
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Cliente</th>
-                <th className="px-5 py-3 font-medium">Loja</th>
                 <th className="px-5 py-3 font-medium">Telefone</th>
                 <th className="px-5 py-3 font-medium">Contato</th>
                 <th className="px-5 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((customer) => (
+              {customers.map((customer) => (
                 <tr key={customer.id} className="align-top">
                   <td className="px-5 py-3.5">
                     <p className="font-medium text-foreground">
@@ -369,9 +352,6 @@ export default function EquipePage() {
                         }
                       />
                     ) : null}
-                  </td>
-                  <td className="px-5 py-3.5 text-muted-foreground">
-                    {storeDisplayName(customer)}
                   </td>
                   <td className="px-5 py-3.5 tabular-nums text-foreground">
                     {staffCustomerPhone(customer)}
@@ -392,15 +372,13 @@ export default function EquipePage() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {customers.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
                     className="px-5 py-10 text-center text-sm text-muted-foreground"
                   >
-                    {customers.length === 0
-                      ? 'Nenhum cliente ainda.'
-                      : 'Nenhum cliente encontrado.'}
+                    {emptyLabel}
                   </td>
                 </tr>
               )}
@@ -653,9 +631,6 @@ function StaffCustomerCard({
   return (
     <li className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
       <p className="font-semibold text-foreground">{customer.displayName}</p>
-      <p className="mt-0.5 text-sm text-muted-foreground">
-        {storeDisplayName(customer)}
-      </p>
       <p className="mt-2 text-sm tabular-nums text-foreground">
         {staffCustomerPhone(customer)}
       </p>

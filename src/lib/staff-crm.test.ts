@@ -5,13 +5,24 @@ import { ApiHttpError, apiErrorFromBody, isStaffForbiddenError } from './api-err
 import { readJwtRole } from './jwt-role.ts';
 import {
   LOJISTA_SESSION_MESSAGE,
+  OWNER_ON_STAFF_LOGIN_MESSAGE,
   PUBLIC_OFFER_ORIGIN,
+  STAFF_LOGIN_PATH,
+  STAFF_ON_LOJISTA_LOGIN_MESSAGE,
+  customersInStore,
+  equipeAuthRedirect,
+  filterStaffStores,
+  formatStaffCustomerCount,
   formatStaffLastContacted,
   homePathForRole,
+  lojistaLoginOutcome,
   parseReaisToCents,
   resolveStaffStoreSlug,
+  staffCustomersAliasPath,
+  staffLoginOutcome,
   staffCheckoutPublicUrl,
   staffCustomerPhone,
+  staffStoreCustomersPath,
   storeDisplayName,
 } from './staff-crm.ts';
 
@@ -26,6 +37,103 @@ describe('homePathForRole', () => {
     assert.equal(homePathForRole('owner'), '/painel');
     assert.equal(homePathForRole(undefined), '/painel');
     assert.equal(homePathForRole(null), '/painel');
+  });
+});
+
+describe('login path isolation', () => {
+  it('keeps staff login on /equipe/entrar, not /entrar', () => {
+    assert.equal(STAFF_LOGIN_PATH, '/equipe/entrar');
+  });
+
+  it('does not persist a staff login on the lojista form', () => {
+    const staff = lojistaLoginOutcome('staff');
+    assert.equal(staff.action, 'reject');
+    if (staff.action !== 'reject') return;
+    assert.equal(staff.href, STAFF_LOGIN_PATH);
+    assert.match(staff.message, /área é da loja/i);
+    assert.match(staff.message, /\/equipe\/entrar/);
+    assert.equal(STAFF_ON_LOJISTA_LOGIN_MESSAGE, staff.message);
+
+    const owner = lojistaLoginOutcome('owner');
+    assert.deepEqual(owner, { action: 'persist', session: 'lojista', href: '/painel' });
+  });
+
+  it('does not persist an owner login on the staff form', () => {
+    const owner = staffLoginOutcome('owner');
+    assert.equal(owner.action, 'reject');
+    if (owner.action !== 'reject') return;
+    assert.match(owner.message, /equipe Voltou/i);
+    assert.equal(OWNER_ON_STAFF_LOGIN_MESSAGE, owner.message);
+    assert.equal('href' in owner && owner.href, false);
+
+    const staff = staffLoginOutcome('staff');
+    assert.deepEqual(staff, { action: 'persist', session: 'staff', href: '/equipe' });
+  });
+});
+
+describe('equipeAuthRedirect', () => {
+  it('sends unauthenticated /equipe traffic to /equipe/entrar, not /entrar', () => {
+    assert.equal(equipeAuthRedirect('/equipe', undefined), '/equipe/entrar');
+    assert.equal(equipeAuthRedirect('/equipe/lojas/s1', undefined), '/equipe/entrar');
+    assert.equal(equipeAuthRedirect('/equipe/entrar', undefined), null);
+    assert.equal(equipeAuthRedirect('/equipe', 'staff-cookie'), null);
+    assert.equal(equipeAuthRedirect('/painel', undefined), null);
+  });
+});
+
+describe('customersInStore', () => {
+  it('keeps only the selected store slice', () => {
+    const rows = [
+      { id: 'c1', storeId: 's1' },
+      { id: 'c2', storeId: 's2' },
+      { id: 'c3', storeId: 's1' },
+    ];
+    assert.deepEqual(
+      customersInStore(rows, 's1').map((c) => c.id),
+      ['c1', 'c3'],
+    );
+  });
+});
+
+describe('staff store-scoped customer paths', () => {
+  it('prefers GET /staff/stores/:storeId/customers with optional q', () => {
+    assert.equal(
+      staffStoreCustomersPath('s1'),
+      '/staff/stores/s1/customers',
+    );
+    assert.equal(
+      staffStoreCustomersPath('s1', ' Ana '),
+      '/staff/stores/s1/customers?q=Ana',
+    );
+  });
+
+  it('alias GET /staff/customers always includes required storeId', () => {
+    assert.equal(
+      staffCustomersAliasPath('s2'),
+      '/staff/customers?storeId=s2',
+    );
+    assert.equal(
+      staffCustomersAliasPath('s2', 'Bruno'),
+      '/staff/customers?storeId=s2&q=Bruno',
+    );
+    assert.throws(() => staffCustomersAliasPath(''), /storeId/);
+  });
+
+  it('formats customerCount in pt-BR', () => {
+    assert.equal(formatStaffCustomerCount(0), '0 clientes');
+    assert.equal(formatStaffCustomerCount(1), '1 cliente');
+    assert.equal(formatStaffCustomerCount(12), '12 clientes');
+  });
+});
+
+describe('filterStaffStores', () => {
+  it('matches store or tenant name', () => {
+    const stores = [
+      { id: 's1', name: 'Sapataria', tenant: { name: 'Carlos' } },
+      { id: 's2', name: 'Ateliê', tenant: { name: 'Luna' } },
+    ];
+    assert.equal(filterStaffStores(stores, 'luna').map((s) => s.id).join(), 's2');
+    assert.equal(filterStaffStores(stores, '').length, 2);
   });
 });
 
@@ -110,7 +218,13 @@ describe('staff copy helpers', () => {
       }),
       'Principal · Ateliê Luna',
     );
-    assert.equal(staffCustomerPhone({ phoneE164: '+5511999990001', phoneMasked: '(11) *****-0001' }), '+55 11 99999-0001');
+    assert.equal(
+      storeDisplayName({
+        name: 'Sapataria',
+        tenant: { name: 'Carlos' },
+      }),
+      'Sapataria · Carlos',
+    );
     assert.equal(staffCustomerPhone({ phoneE164: null, phoneMasked: '(11) *****-0001' }), '(11) *****-0001');
     assert.equal(staffCustomerPhone({ phoneE164: null, phoneMasked: null }), '—');
   });
@@ -174,28 +288,94 @@ describe('staff API client contract', () => {
     assert.match(body, /assertLojistaCannotDispatch/);
   });
 
-  it('login sends staff to /equipe by role', () => {
+  it('lists store customers via nested path (or alias with storeId), never a flat dump', () => {
+    assert.match(api, /customerCount\??:\s*number/);
+    assert.match(api, /export async function listStaffStoreCustomers/);
+    const start = api.indexOf('export async function listStaffStoreCustomers');
+    assert.ok(start >= 0, 'listStaffStoreCustomers must exist');
+    const rest = api.slice(start);
+    const nextExport = rest.indexOf('\nexport ', 1);
+    const body = nextExport === -1 ? rest : rest.slice(0, nextExport);
+    assert.match(body, /staffStoreCustomersPath/);
+    assert.doesNotMatch(body, /usedFlatListFallback/);
+    assert.doesNotMatch(body, /customersInStore/);
+
+    const aliasStart = api.indexOf('export async function listStaffCustomers');
+    const aliasRest = api.slice(aliasStart);
+    const aliasNext = aliasRest.indexOf('\nexport ', 1);
+    const aliasBody =
+      aliasNext === -1 ? aliasRest : aliasRest.slice(0, aliasNext);
+    assert.match(aliasBody, /staffCustomersAliasPath/);
+    assert.match(aliasBody, /storeId/);
+    assert.doesNotMatch(
+      aliasBody,
+      /jsonFetch<StaffCustomer\[\]>\(\s*`?\/staff\/customers`?\)/,
+    );
+  });
+
+  it('lojista /entrar does not persist a staff session', () => {
     const form = readFileSync(
       new URL('../components/auth/auth-form.tsx', import.meta.url),
       'utf8',
     );
-    assert.match(form, /homePathForRole\(result\.user\.role\)/);
+    assert.match(form, /lojistaLoginOutcome/);
+    assert.doesNotMatch(form, /persistStaffSession/);
+    assert.match(form, /STAFF_LOGIN_PATH|\/equipe\/entrar/);
   });
 
-  it('equipe checks /auth/me role before calling /staff/*', () => {
+  it('staff /equipe/entrar has no criar conta and persists only staff', () => {
     const page = readFileSync(
-      new URL('../app/equipe/page.tsx', import.meta.url),
+      new URL('../app/equipe/entrar/page.tsx', import.meta.url),
+      'utf8',
+    );
+    const form = readFileSync(
+      new URL('../components/auth/staff-login-form.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.doesNotMatch(page, /criar conta/i);
+    assert.doesNotMatch(form, /criar conta/i);
+    assert.doesNotMatch(form, /registerAccount/);
+    assert.match(form, /staffLoginOutcome/);
+    assert.match(form, /persistStaffSession/);
+    assert.doesNotMatch(form, /persistClientSession/);
+  });
+
+  it('equipe home lists stores, not a flat customer list', () => {
+    const page = readFileSync(
+      new URL('../app/equipe/(crm)/page.tsx', import.meta.url),
       'utf8',
     );
     const authMe = page.indexOf('fetchAuthMe');
-    const staffList = page.indexOf('listStaffCustomers');
-    assert.ok(authMe >= 0, 'equipe must call fetchAuthMe');
-    assert.ok(staffList >= 0, 'equipe must call listStaffCustomers');
-    assert.ok(
-      authMe < staffList,
-      'must resolve role before GET /staff/customers',
-    );
+    const stores = page.indexOf('listStaffStores');
+    assert.ok(authMe >= 0, 'equipe home must call fetchAuthMe');
+    assert.ok(stores >= 0, 'equipe home must call listStaffStores');
+    assert.ok(authMe < stores, 'must resolve role before GET /staff/stores');
     assert.match(page, /isStaffRole\(user\.role\)/);
+    assert.equal(page.includes('listStaffCustomers'), false);
+    assert.match(page, /\/equipe\/lojas\//);
+    assert.match(page, /customerCount|formatStaffCustomerCount/);
+  });
+
+  it('store CRM page loads that store\'s customers and keeps contact + emit link', () => {
+    const page = [
+      readFileSync(
+        new URL('../app/equipe/(crm)/lojas/[storeId]/page.tsx', import.meta.url),
+        'utf8',
+      ),
+      readFileSync(
+        new URL(
+          '../components/equipe/staff-customers-panel.tsx',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ].join('\n');
+    assert.match(page, /listStaffStoreCustomers/);
+    assert.match(page, /registerStaffContact/);
+    assert.match(page, /createStaffCheckout/);
+    assert.match(page, /tenantId/);
+    assert.match(page, /storeId/);
+    assert.match(page, /listStaffStoreCustomers\(storeId/);
   });
 
   it('painel never imports the staff checkout helper', () => {
@@ -212,5 +392,13 @@ describe('staff API client contract', () => {
     ].join('\n');
     assert.equal(painel.includes('createStaffCheckout'), false);
     assert.equal(painel.includes('/staff/customers'), false);
+  });
+
+  it('middleware guards /equipe with the staff cookie only', () => {
+    const mw = readFileSync(new URL('../middleware.ts', import.meta.url), 'utf8');
+    assert.match(mw, /STAFF_SESSION_COOKIE/);
+    assert.match(mw, /equipeAuthRedirect/);
+    assert.match(mw, /isStaffRole/);
+    assert.match(mw, /SESSION_COOKIE/);
   });
 });

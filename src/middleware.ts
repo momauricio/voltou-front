@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { SESSION_COOKIE } from '@/lib/session-cookie';
-import { isStaffRole } from '@/lib/staff-crm';
+import { SESSION_COOKIE, STAFF_SESSION_COOKIE } from '@/lib/session-cookie';
+import { equipeAuthRedirect, isStaffRole } from '@/lib/staff-crm';
 import { readJwtRole } from '@/lib/jwt-role';
 
 export function middleware(request: NextRequest) {
@@ -9,6 +9,17 @@ export function middleware(request: NextRequest) {
   const isPainel = pathname.startsWith('/painel');
   const isEquipe = pathname.startsWith('/equipe');
   if (!isPainel && !isEquipe) {
+    return NextResponse.next();
+  }
+
+  if (isEquipe) {
+    const staffSession = request.cookies.get(STAFF_SESSION_COOKIE)?.value;
+    const dest = equipeAuthRedirect(pathname, staffSession);
+    if (dest) {
+      const login = new URL(dest, request.url);
+      if (pathname !== dest) login.searchParams.set('next', pathname);
+      return NextResponse.redirect(login);
+    }
     return NextResponse.next();
   }
 

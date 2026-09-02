@@ -1,7 +1,15 @@
 export const PUBLIC_OFFER_ORIGIN = 'https://www.voltouapp.com';
 
+export const STAFF_LOGIN_PATH = '/equipe/entrar';
+
 export const LOJISTA_SESSION_MESSAGE =
   'Esta área é da equipe Voltou. Você está em uma sessão de lojista — entre com uma conta da equipe para ver os clientes e emitir o link de pagamento.';
+
+export const STAFF_ON_LOJISTA_LOGIN_MESSAGE =
+  'Esta área é da loja. A equipe entra em /equipe/entrar.';
+
+export const OWNER_ON_STAFF_LOGIN_MESSAGE =
+  'Esta área é da equipe Voltou.';
 
 export function isStaffRole(role?: string | null): boolean {
   return role === 'staff';
@@ -9,6 +17,101 @@ export function isStaffRole(role?: string | null): boolean {
 
 export function homePathForRole(role?: string | null): string {
   return isStaffRole(role) ? '/equipe' : '/painel';
+}
+
+export type LojistaLoginOutcome =
+  | { action: 'persist'; session: 'lojista'; href: '/painel' }
+  | { action: 'reject'; href: typeof STAFF_LOGIN_PATH; message: string };
+
+export type StaffLoginOutcome =
+  | { action: 'persist'; session: 'staff'; href: '/equipe' }
+  | { action: 'reject'; message: string };
+
+export function lojistaLoginOutcome(
+  role?: string | null,
+): LojistaLoginOutcome {
+  if (isStaffRole(role)) {
+    return {
+      action: 'reject',
+      href: STAFF_LOGIN_PATH,
+      message: STAFF_ON_LOJISTA_LOGIN_MESSAGE,
+    };
+  }
+  return { action: 'persist', session: 'lojista', href: '/painel' };
+}
+
+export function staffLoginOutcome(role?: string | null): StaffLoginOutcome {
+  if (isStaffRole(role)) {
+    return { action: 'persist', session: 'staff', href: '/equipe' };
+  }
+  return { action: 'reject', message: OWNER_ON_STAFF_LOGIN_MESSAGE };
+}
+
+/** /equipe/* needs the staff cookie; /equipe/entrar stays public. */
+export function equipeAuthRedirect(
+  pathname: string,
+  staffSession: string | undefined,
+): string | null {
+  if (!pathname.startsWith('/equipe')) return null;
+  if (pathname === STAFF_LOGIN_PATH) return null;
+  if (!staffSession) return STAFF_LOGIN_PATH;
+  return null;
+}
+
+export function safeEquipeNext(next?: string | null): string | null {
+  if (!next || !next.startsWith('/equipe')) return null;
+  if (next.startsWith('//') || next.includes('://')) return null;
+  if (next === STAFF_LOGIN_PATH) return null;
+  return next;
+}
+
+export function customersInStore<T extends { storeId: string }>(
+  customers: T[],
+  storeId: string,
+): T[] {
+  return customers.filter((customer) => customer.storeId === storeId);
+}
+
+export function staffStoreCustomersPath(storeId: string, q?: string): string {
+  const path = `/staff/stores/${encodeURIComponent(storeId)}/customers`;
+  const trimmed = q?.trim();
+  if (!trimmed) return path;
+  return `${path}?q=${encodeURIComponent(trimmed)}`;
+}
+
+export function staffCustomersAliasPath(storeId: string, q?: string): string {
+  const id = storeId.trim();
+  if (!id) {
+    throw new Error('storeId é obrigatório.');
+  }
+  const params = new URLSearchParams({ storeId: id });
+  const trimmed = q?.trim();
+  if (trimmed) params.set('q', trimmed);
+  return `/staff/customers?${params.toString()}`;
+}
+
+export function formatStaffCustomerCount(n?: number | null): string {
+  const count =
+    typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  return count === 1 ? '1 cliente' : `${count} clientes`;
+}
+
+export function filterStaffStores<
+  T extends {
+    name?: string | null;
+    slug?: string | null;
+    tenant?: { name?: string | null } | null;
+  },
+>(stores: T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return stores;
+  return stores.filter((store) => {
+    const hay = [store.name, store.slug, store.tenant?.name]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
 }
 
 export function formatStaffLastContacted(
@@ -48,10 +151,11 @@ export function resolveStaffStoreSlug(
 }
 
 export function storeDisplayName(input: {
+  name?: string | null;
   store?: { name?: string | null } | null;
   tenant?: { name?: string | null } | null;
 }): string {
-  const store = input.store?.name?.trim() || '';
+  const store = input.store?.name?.trim() || input.name?.trim() || '';
   const tenant = input.tenant?.name?.trim() || '';
   if (store && tenant && store !== tenant) return `${store} · ${tenant}`;
   return store || tenant || 'Loja';

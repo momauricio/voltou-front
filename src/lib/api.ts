@@ -1,8 +1,22 @@
 import { assertLojistaCannotDispatch } from '@/lib/lojista-panel-policy';
 import {
+  ApiHttpError,
   apiErrorFromBody,
   type ApiErrorBody,
 } from '@/lib/api-error';
+import {
+  applySessionToStorage,
+  clearSessionFromStorage,
+  keysFor,
+  readTenantContextFromStorage,
+  readTokenFromStorage,
+  sessionKindFromPath,
+  type SessionKind,
+} from '@/lib/client-session';
+import {
+  staffCustomersAliasPath,
+  staffStoreCustomersPath,
+} from '@/lib/staff-crm';
 
 export type { ApiErrorBody } from '@/lib/api-error';
 export { ApiHttpError, isStaffForbiddenError } from '@/lib/api-error';
@@ -17,41 +31,59 @@ async function parseJson<T>(res: Response): Promise<T> {
   return data;
 }
 
+function currentSessionKind(): SessionKind {
+  if (typeof window === 'undefined') return 'lojista';
+  return sessionKindFromPath(window.location.pathname);
+}
+
+function clearSessionKind(kind: SessionKind) {
+  if (typeof window === 'undefined') return;
+  clearSessionFromStorage(window.localStorage, kind);
+  const path =
+    kind === 'staff' ? '/api/auth/staff-session' : '/api/auth/session';
+  void fetch(path, { method: 'DELETE' }).catch(() => undefined);
+}
+
 export function getStoredAccessToken() {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('voltou_token');
+  return readTokenFromStorage(window.localStorage, currentSessionKind());
 }
 
 export function getStoredTenantContext() {
   if (typeof window === 'undefined') {
     return { tenantId: null as string | null, storeId: null as string | null };
   }
-  return {
-    tenantId: window.localStorage.getItem('voltou_tenant_id'),
-    storeId: window.localStorage.getItem('voltou_store_id'),
-  };
+  return readTenantContextFromStorage(window.localStorage, 'lojista');
 }
 
+/** Lojista /painel session. Does not touch staff keys. */
 export function clearClientSession() {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem('voltou_token');
-  window.localStorage.removeItem('voltou_tenant_id');
-  window.localStorage.removeItem('voltou_store_id');
-  void fetch('/api/auth/session', { method: 'DELETE' }).catch(() => undefined);
+  clearSessionKind('lojista');
+}
+
+/** Staff /equipe session. Does not touch lojista keys. */
+export function clearStaffSession() {
+  clearSessionKind('staff');
 }
 
 export async function persistClientSession(result: {
   accessToken: string;
   user: { tenantId: string; storeId: string | null };
 }) {
-  window.localStorage.setItem('voltou_token', result.accessToken);
-  window.localStorage.setItem('voltou_tenant_id', result.user.tenantId);
-  if (result.user.storeId) {
-    window.localStorage.setItem('voltou_store_id', result.user.storeId);
-  } else {
-    window.localStorage.removeItem('voltou_store_id');
-  }
+  applySessionToStorage(window.localStorage, 'lojista', result);
   await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken: result.accessToken }),
+  });
+}
+
+export async function persistStaffSession(result: {
+  accessToken: string;
+  user: { tenantId: string; storeId: string | null };
+}) {
+  applySessionToStorage(window.localStorage, 'staff', result);
+  await fetch('/api/auth/staff-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ accessToken: result.accessToken }),
@@ -72,7 +104,7 @@ async function jsonFetch<T>(
   if (auth) {
     const token = getStoredAccessToken();
     if (!token) {
-      clearClientSession();
+      clearSessionKind(currentSessionKind());
       throw new Error('Sessão expirada. Faça login novamente.');
     }
     headers.set('Authorization', `Bearer ${token}`);
@@ -81,7 +113,7 @@ async function jsonFetch<T>(
   void _ignoredAuth;
   const res = await fetch(`${API_URL}${apiPath}`, { ...rest, headers });
   if (res.status === 401 && auth) {
-    clearClientSession();
+    clearSessionKind(currentSessionKind());
   }
   return parseJson<T>(res);
 }
@@ -1315,6 +1347,7 @@ export type StaffStore = {
   slug: string;
   tenantId: string;
   tenant: { id: string; name: string; slug: string };
+  customerCount?: number;
 };
 
 export type StaffCustomer = {
@@ -1346,8 +1379,26 @@ export async function listStaffStores() {
   return jsonFetch<StaffStore[]>('/staff/stores', { cache: 'no-store' });
 }
 
-export async function listStaffCustomers() {
-  return jsonFetch<StaffCustomer[]>('/staff/customers', { cache: 'no-store' });
+/** Alias — storeId is required (API returns 400 without it). */
+export async function listStaffCustomers(storeId: string, q?: string) {
+  return jsonFetch<StaffCustomer[]>(staffCustomersAliasPath(storeId, q), {
+    cache: 'no-store',
+  });
+}
+
+/** Preferred: GET /staff/stores/:storeId/customers?q= */
+export async function listStaffStoreCustomers(storeId: string, q?: string) {
+  try {
+    return await jsonFetch<StaffCustomer[]>(
+      staffStoreCustomersPath(storeId, q),
+      { cache: 'no-store' },
+    );
+  } catch (err) {
+    if (err instanceof ApiHttpError && err.status === 404) {
+      return listStaffCustomers(storeId, q);
+    }
+    throw err;
+  }
 }
 
 export async function registerStaffContact(
@@ -1393,11 +1444,12 @@ export async function resolveTenantContext() {
 
   try {
     const { user } = await fetchAuthMe(token);
-    window.localStorage.setItem('voltou_tenant_id', user.tenantId);
+    const keys = keysFor('lojista');
+    window.localStorage.setItem(keys.tenantId, user.tenantId);
     if (user.storeId) {
-      window.localStorage.setItem('voltou_store_id', user.storeId);
+      window.localStorage.setItem(keys.storeId, user.storeId);
     } else {
-      window.localStorage.removeItem('voltou_store_id');
+      window.localStorage.removeItem(keys.storeId);
     }
     return { tenantId: user.tenantId, storeId: user.storeId };
   } catch {
