@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatCnpj, isValidCnpj, stripCnpj } from '@/lib/cnpj';
 import { loginAccount, registerAccount, persistClientSession } from '@/lib/api';
+import { homePathForRole } from '@/lib/staff-crm';
 
 type Tab = 'entrar' | 'criar';
 
@@ -114,7 +115,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         password,
       });
       await persistClientSession(result);
-      router.push('/painel');
+      router.push(homePathForRole(result.user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
     } finally {
