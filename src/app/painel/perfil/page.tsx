@@ -1,10 +1,10 @@
 'use client';
 
 import { FormEvent, Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/painel/page-header';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
-import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
 import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
 import { WhatsappConnectCard } from '@/components/painel/whatsapp-connect-card';
 import { changePassword, clearClientSession, getStoredAccessToken } from '@/lib/api';
@@ -71,16 +71,22 @@ export default function PerfilPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
         title="Perfil"
-        subtitle="Gerencie WhatsApp, pagamentos, entrega, aparência do checkout e a segurança do acesso."
+        subtitle="Gerencie WhatsApp, pagamentos, aparência do checkout e a segurança do acesso."
       />
 
       <WhatsappConnectCard />
 
+      <p className="rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-muted-foreground">
+        Endereço de retirada e WhatsApp de aviso de pedido ficam em{' '}
+        <Link href="/painel/regras" className="font-medium text-foreground underline">
+          Regras
+        </Link>
+        .
+      </p>
+
       <Suspense fallback={null}>
         <PaymentProvidersCard />
       </Suspense>
-
-      <FulfillmentSettingsCard />
 
       <CheckoutBrandingCard />
 

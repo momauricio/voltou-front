@@ -2,6 +2,7 @@
 
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
+import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
 import {
   getStoreRules,
   resolveTenantContext,
@@ -272,7 +273,7 @@ export default function RegrasPage() {
     <div className="space-y-6 pb-16">
       <PageHeader
         title="Regras"
-        subtitle="Configure como a Voltou conversa com seus clientes e em que horário."
+        subtitle="Configure entrega, avisos de pedido e como a Voltou conversa com seus clientes."
       />
 
       {loadState !== 'ready' && (
@@ -282,6 +283,8 @@ export default function RegrasPage() {
             : 'As regras só gravam na conta depois que o carregamento da API funcionar. Nada é salvo só no navegador.'}
         </div>
       )}
+
+      <FulfillmentSettingsCard />
 
       <Section
         title="Sobre o negócio"
