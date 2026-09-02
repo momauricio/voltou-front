@@ -1,3 +1,8 @@
+import {
+  formatDatePtBr,
+  formatDateTimePtBr,
+} from './lojista-panel-ux.ts';
+
 export type ClienteStatus = 'Retornou' | 'Contatado' | 'Aguardando' | 'Inativo';
 
 export type InterestSource = 'walk_in' | 'whatsapp' | 'import' | 'ai' | 'web';
@@ -40,6 +45,8 @@ export type Checkout = {
   interestId?: string;
   createdAt: string;
   paidAt?: string;
+  couponCode?: string | null;
+  mpPaymentId?: string | null;
 };
 
 export type EventType =
@@ -64,6 +71,7 @@ export type MockCustomer = {
   displayName: string;
   phoneMasked: string;
   whatsapp: string;
+  phoneIsMasked?: boolean;
   status: ClienteStatus;
   produto: string;
   compra: string;
@@ -138,17 +146,11 @@ export function formatCurrency(cents: number) {
 }
 
 export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR');
+  return formatDatePtBr(iso);
 }
 
 export function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTimePtBr(iso);
 }
 
 export function maskWhatsapp(phone: string) {

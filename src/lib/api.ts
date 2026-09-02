@@ -839,6 +839,8 @@ export type MerchantOrder = {
   fulfillmentStatus: string | null;
   trackingCode?: string | null;
   mpPaymentId?: string | null;
+  orderNumber?: string | number | null;
+  voltouOrderNumber?: string | number | null;
   status?: string;
   shippingAddress: {
     recipientName: string;
@@ -941,6 +943,8 @@ export type ApiCheckoutRecord = {
   createdAt: string;
   paidAt: string | null;
   expiresAt: string | null;
+  couponCode?: string | null;
+  mpPaymentId?: string | null;
 };
 
 export type ApiCustomerEvent = {
@@ -955,11 +959,14 @@ export type ApiCustomerSummary = {
   id: string;
   displayName: string;
   phoneMasked: string | null;
+  phone?: string | null;
+  phoneDisplay?: string | null;
+  phoneE164?: string | null;
   optedOutAt: string | null;
   createdAt: string;
   customerInterests: ApiInterest[];
   sales: ApiSale[];
-  checkouts: { id: string; status: string; createdAt: string }[];
+  checkouts: { id: string; status: string; createdAt: string; couponCode?: string | null }[];
   outreachMessages?: {
     id: string;
     repliedAt: string | null;
@@ -972,6 +979,10 @@ export type ApiCustomerDetail = {
   id: string;
   displayName: string;
   phoneMasked: string | null;
+  phone?: string | null;
+  phoneDisplay?: string | null;
+  phoneE164?: string | null;
+  whatsapp?: string | null;
   notes: string | null;
   optedOutAt: string | null;
   createdAt: string;

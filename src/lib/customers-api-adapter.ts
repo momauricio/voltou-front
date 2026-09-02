@@ -16,6 +16,10 @@ import {
   type Sale,
   type SaleSource,
 } from '@/lib/mock-customers';
+import {
+  merchantCustomerPhone,
+  uniqueCheckouts,
+} from '@/lib/lojista-panel-ux';
 
 const INACTIVE_DAYS = 60;
 
@@ -74,12 +78,19 @@ export function mapApiCustomerSummary(api: ApiCustomerSummary): MockCustomer {
   const outreach = api.outreachMessages ?? [];
   const hasOutreach = outreach.length > 0;
   const hasReply = outreach.some((m) => m.repliedAt != null);
+  const phone = merchantCustomerPhone({
+    phoneMasked: api.phoneMasked,
+    phone: api.phone,
+    phoneDisplay: api.phoneDisplay,
+    phoneE164: api.phoneE164,
+  });
 
   return {
     id: api.id,
     displayName: api.displayName,
-    phoneMasked: api.phoneMasked ?? '****',
-    whatsapp: api.phoneMasked ?? '****',
+    phoneMasked: phone.display,
+    whatsapp: phone.display,
+    phoneIsMasked: phone.masked,
     status: deriveStatus({
       lastSaleAt: lastSale?.soldAt ?? null,
       hasPendingCheckout,
@@ -107,6 +118,7 @@ export function mapApiCustomerSummary(api: ApiCustomerSummary): MockCustomer {
 
 export type CustomerDetailView = MockCustomer & {
   optedOut: boolean;
+  phoneIsMasked: boolean;
 };
 
 export function mapApiCustomerDetail(api: ApiCustomerDetail): CustomerDetailView {
@@ -130,7 +142,7 @@ export function mapApiCustomerDetail(api: ApiCustomerDetail): CustomerDetailView
     soldAt: s.soldAt,
   }));
 
-  const checkouts: Checkout[] = api.checkouts.map((c) => ({
+  const checkouts: Checkout[] = uniqueCheckouts(api.checkouts).map((c) => ({
     id: c.id,
     token: '',
     productNameSnapshot: c.productNameSnapshot,
@@ -142,6 +154,8 @@ export function mapApiCustomerDetail(api: ApiCustomerDetail): CustomerDetailView
     interestId: c.interestId ?? undefined,
     createdAt: c.createdAt,
     paidAt: c.paidAt ?? undefined,
+    couponCode: c.couponCode ?? undefined,
+    mpPaymentId: c.mpPaymentId ?? undefined,
   }));
 
   // Respostas: sem texto; dedupe visual (um registro de "respondeu" basta)
@@ -176,12 +190,20 @@ export function mapApiCustomerDetail(api: ApiCustomerDetail): CustomerDetailView
   const hasPendingCheckout = checkouts.some((c) => c.status === 'pending');
   const hasOutreach = events.some((e) => e.type === 'outreach');
   const hasReply = events.some((e) => e.type === 'reply');
+  const phone = merchantCustomerPhone({
+    phoneMasked: api.phoneMasked,
+    phone: api.phone,
+    phoneDisplay: api.phoneDisplay,
+    phoneE164: api.phoneE164,
+    whatsapp: api.whatsapp,
+  });
 
   return {
     id: api.id,
     displayName: api.displayName,
-    phoneMasked: api.phoneMasked ?? '****',
-    whatsapp: api.phoneMasked ?? '****',
+    phoneMasked: phone.display,
+    whatsapp: phone.display,
+    phoneIsMasked: phone.masked,
     status: deriveStatus({
       lastSaleAt: lastSale?.soldAt ?? null,
       hasPendingCheckout,

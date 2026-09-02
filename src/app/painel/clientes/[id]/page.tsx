@@ -37,6 +37,10 @@ import {
   mapApiCustomerDetail,
   type CustomerDetailView,
 } from '@/lib/customers-api-adapter';
+import {
+  merchantCustomerPhone,
+  merchantOrderRefs,
+} from '@/lib/lojista-panel-ux';
 
 const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'danger'> = {
   Retornou: 'success',
@@ -330,6 +334,10 @@ function ClienteDetailInner({ id }: { id: string }) {
   }
 
   const optedOut = usingApi ? Boolean(apiCustomer?.optedOut) : false;
+  const phoneView = merchantCustomerPhone({
+    phoneMasked: customer.phoneMasked,
+    whatsapp: customer.whatsapp,
+  });
 
   return (
     <div className="space-y-6">
@@ -348,7 +356,14 @@ function ClienteDetailInner({ id }: { id: string }) {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {customer.displayName}
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{customer.phoneMasked}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            WhatsApp {phoneView.display}
+          </p>
+          {phoneView.masked ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Número mascarado — é o WhatsApp que a API da loja devolve para atendimento.
+            </p>
+          ) : null}
           {optedOut && (
             <p className="mt-1 text-xs font-medium text-red-600">
               Opt-out ativo — não receberá mensagens automáticas da Voltou.
@@ -470,7 +485,9 @@ function ClienteDetailInner({ id }: { id: string }) {
             {customer.checkouts.length === 0 ? (
               <EmptyState text="Nenhum checkout nesta ficha." />
             ) : (
-              customer.checkouts.map((checkout) => (
+              customer.checkouts.map((checkout) => {
+                const refs = merchantOrderRefs(checkout);
+                return (
                 <div key={checkout.id} className="border-b border-border py-3 last:border-0 last:pb-0 first:pt-0">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-foreground">{checkout.productNameSnapshot}</p>
@@ -480,6 +497,15 @@ function ClienteDetailInner({ id }: { id: string }) {
                     />
                   </div>
                   <p className="mt-0.5 text-sm text-primary">{formatCurrency(checkout.amountCents)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {refs.voltou.label} {refs.voltou.value}
+                    {refs.coupon ? ` · ${refs.coupon.label} ${refs.coupon.value}` : ''}
+                    {refs.mercadoPago
+                      ? ` · ${refs.mercadoPago.label} ${refs.mercadoPago.value}`
+                      : ''}
+                    {' · '}
+                    {formatDate(checkout.createdAt)}
+                  </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
@@ -505,7 +531,8 @@ function ClienteDetailInner({ id }: { id: string }) {
                     )}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </SideCard>
         </aside>

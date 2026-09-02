@@ -11,6 +11,7 @@ import {
   type ImportSheetKind,
   type ImportSheetMeta,
 } from '@/lib/api';
+import { formatDatePtBr } from '@/lib/lojista-panel-ux';
 
 type Tab = 'vendas' | 'clientes' | 'produtos';
 type Step = 'upload' | 'map' | 'preview' | 'done';
@@ -567,9 +568,7 @@ export function ImportCenter({
                           {formatCents(s.amountCents)}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
-                          {s.soldAt
-                            ? new Date(s.soldAt).toLocaleDateString('pt-BR')
-                            : '—'}
+                          {s.soldAt ? formatDatePtBr(s.soldAt) : '—'}
                         </td>
                       </tr>
                     ))}
