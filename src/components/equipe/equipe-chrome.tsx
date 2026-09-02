@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { BrandLogo } from '@/components/brand-logo';
-import { clearClientSession } from '@/lib/api';
+import { clearStaffSession } from '@/lib/api';
 
 export function EquipeChrome() {
   const router = useRouter();
 
   function handleSair() {
-    clearClientSession();
-    router.push('/entrar');
+    clearStaffSession();
+    router.push('/equipe/entrar');
   }
 
   return (

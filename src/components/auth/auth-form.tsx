@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatCnpj, isValidCnpj, stripCnpj } from '@/lib/cnpj';
 import { loginAccount, registerAccount, persistClientSession } from '@/lib/api';
-import { homePathForRole } from '@/lib/staff-crm';
+import {
+  lojistaLoginOutcome,
+  STAFF_LOGIN_PATH,
+} from '@/lib/staff-crm';
 
 type Tab = 'entrar' | 'criar';
 
@@ -114,8 +117,13 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         email: email.trim().toLowerCase(),
         password,
       });
+      const outcome = lojistaLoginOutcome(result.user.role);
+      if (outcome.action === 'reject') {
+        router.push(`${STAFF_LOGIN_PATH}?aviso=loja`);
+        return;
+      }
       await persistClientSession(result);
-      router.push(homePathForRole(result.user.role));
+      router.push(outcome.href);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível continuar.');
     } finally {
