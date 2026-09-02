@@ -1,8 +1,11 @@
 'use client';
 
-import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
-import { FulfillmentSettingsCard } from '@/components/painel/fulfillment-settings-card';
+import {
+  FulfillmentSettingsCard,
+  type FulfillmentSettingsCardHandle,
+} from '@/components/painel/fulfillment-settings-card';
 import {
   getStoreRules,
   resolveTenantContext,
@@ -141,6 +144,7 @@ export default function RegrasPage() {
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const canSave = loadState === 'ready' && Boolean(tenantCtx);
+  const fulfillmentRef = useRef<FulfillmentSettingsCardHandle>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,6 +257,13 @@ export default function RegrasPage() {
     setSaving(true);
     setErro(null);
     try {
+      const fulfillmentOk = await fulfillmentRef.current?.save();
+      if (!fulfillmentOk) {
+        setErro(
+          'Confira entrega e pedidos. O endereço de retirada é obrigatório para retirada na loja.',
+        );
+        return;
+      }
       await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
       setLoadState('ready');
       setSalvo(true);
@@ -284,7 +295,7 @@ export default function RegrasPage() {
         </div>
       )}
 
-      <FulfillmentSettingsCard />
+      <FulfillmentSettingsCard ref={fulfillmentRef} />
 
       <Section
         title="Sobre o negócio"
@@ -599,7 +610,7 @@ export default function RegrasPage() {
             onClick={() => void handleSalvar()}
             className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95 disabled:opacity-60"
           >
-            {saving ? 'Salvando…' : 'Salvar regras'}
+            {saving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       </div>

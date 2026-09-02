@@ -16,12 +16,17 @@ import { BlingStockCard } from '@/components/painel/bling-stock-card';
 import { StockIntegrationsMenu } from '@/components/painel/stock-integrations-menu';
 import {
   createApiProduct,
+  getStoredAccessToken,
   getStoredTenantContext,
   listApiProducts,
   resolveTenantContext,
   updateApiProduct,
   type ApiProduct,
 } from '@/lib/api';
+import {
+  lojistaApiLoadError,
+  lojistaDemoBannerVisible,
+} from '@/lib/lojista-panel-ux';
 
 type ProdutoStatus = 'Ativo' | 'Esgotado' | 'Inativo';
 
@@ -47,113 +52,6 @@ const CATEGORIAS = ['Tênis', 'Roupas', 'Acessórios', 'Meias', 'Bolsas', 'Geral
 const DESCONTO_MAX_PADRAO = 30;
 /** Comissão da Voltou usada no piso (5%). */
 const COMISSAO = 0.05;
-
-const PRODUTOS_INICIAIS: Produto[] = [
-  {
-    id: '1',
-    nome: 'Tênis Runner Pro',
-    sku: 'RUN-001',
-    categoria: 'Tênis',
-    preco: 349.9,
-    custo: 180,
-    descontoMax: 20,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 128,
-    status: 'Ativo',
-  },
-  {
-    id: '2',
-    nome: 'Jaqueta Windbreaker',
-    sku: 'JAQ-014',
-    categoria: 'Roupas',
-    preco: 259.0,
-    custo: 120,
-    descontoMax: null,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 42,
-    status: 'Ativo',
-  },
-  {
-    id: '3',
-    nome: 'Mochila Urban',
-    sku: 'MOC-022',
-    categoria: 'Bolsas',
-    preco: 189.9,
-    custo: null,
-    descontoMax: 15,
-    disponivel: false,
-    iaPodeVender: false,
-    estoque: 0,
-    status: 'Esgotado',
-  },
-  {
-    id: '4',
-    nome: 'Boné Classic',
-    sku: 'BON-005',
-    categoria: 'Acessórios',
-    preco: 79.9,
-    custo: 25,
-    descontoMax: null,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 210,
-    status: 'Ativo',
-  },
-  {
-    id: '5',
-    nome: 'Meia Performance 3-pack',
-    sku: 'MEI-010',
-    categoria: 'Meias',
-    preco: 49.9,
-    custo: 18,
-    descontoMax: null,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 96,
-    status: 'Ativo',
-  },
-  {
-    id: '6',
-    nome: 'Tênis Casual Street',
-    sku: 'CAS-008',
-    categoria: 'Tênis',
-    preco: 279.9,
-    custo: 150,
-    descontoMax: 25,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 64,
-    status: 'Ativo',
-  },
-  {
-    id: '7',
-    nome: 'Camiseta Dry-Fit',
-    sku: 'CAM-021',
-    categoria: 'Roupas',
-    preco: 89.9,
-    custo: null,
-    descontoMax: null,
-    disponivel: true,
-    iaPodeVender: true,
-    estoque: 150,
-    status: 'Ativo',
-  },
-  {
-    id: '8',
-    nome: 'Bolsa Crossbody',
-    sku: 'BOL-003',
-    categoria: 'Bolsas',
-    preco: 159.9,
-    custo: 70,
-    descontoMax: null,
-    disponivel: true,
-    iaPodeVender: false,
-    estoque: 28,
-    status: 'Ativo',
-  },
-];
 
 const STATUS_TONE: Record<ProdutoStatus, 'success' | 'warning' | 'muted' | 'danger'> = {
   Ativo: 'success',
@@ -212,9 +110,10 @@ export default function ProdutosPage() {
 
 function ProdutosPageInner() {
   const searchParams = useSearchParams();
-  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_INICIAIS);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [usingApi, setUsingApi] = useState(false);
   const [apiErro, setApiErro] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [ordem, setOrdem] = useState('recentes');
@@ -228,6 +127,9 @@ function ProdutosPageInner() {
     tenantId: string;
     storeId: string;
   } | null>(null);
+  const showDemoBanner = lojistaDemoBannerVisible({
+    accessToken: getStoredAccessToken(),
+  });
 
   const [novoNome, setNovoNome] = useState('');
   const [novoSku, setNovoSku] = useState('');
@@ -256,17 +158,23 @@ function ProdutosPageInner() {
   useEffect(() => {
     let cancelled = false;
     void resolveTenantContext().then(async (ctx) => {
-      if (cancelled || !ctx.tenantId || !ctx.storeId) return;
+      if (cancelled) return;
+      if (!ctx.tenantId || !ctx.storeId) {
+        setApiErro(lojistaApiLoadError());
+        setLoading(false);
+        return;
+      }
       setTenantCtx({ tenantId: ctx.tenantId, storeId: ctx.storeId });
       try {
         await reloadProducts(ctx.tenantId, ctx.storeId);
       } catch (err) {
         if (cancelled) return;
+        setProdutos([]);
         setApiErro(
-          err instanceof Error
-            ? `Não foi possível carregar produtos (${err.message}) — mostrando demonstração.`
-            : 'Não foi possível carregar produtos — mostrando demonstração.',
+          lojistaApiLoadError(err instanceof Error ? err.message : undefined),
         );
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     });
     return () => {
@@ -573,17 +481,17 @@ function ProdutosPageInner() {
         }
       />
 
-      {!usingApi && !tenantCtx && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Você está vendo <span className="font-semibold">dados de demonstração</span>.
-          Entre na sua conta para ver seu catálogo real.
-        </div>
-      )}
+      {showDemoBanner ? (
+        <p className="text-sm text-muted-foreground">Faça login para ver o catálogo da loja.</p>
+      ) : null}
       {apiErro && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {apiErro}
         </div>
       )}
+      {loading && !apiErro ? (
+        <p className="text-sm text-muted-foreground">Carregando produtos…</p>
+      ) : null}
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

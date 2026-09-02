@@ -27,6 +27,12 @@ function formatCurrencyCents(cents: number) {
   });
 }
 
+function lastAutoTableY(doc: jsPDF, fallback: number) {
+  const table = (doc as jsPDF & { lastAutoTable?: { finalY?: number } })
+    .lastAutoTable;
+  return typeof table?.finalY === 'number' ? table.finalY : fallback;
+}
+
 function formatDateBr(iso: string) {
   const [y, m, d] = iso.split('-');
   if (!y || !m || !d) return iso;
@@ -95,8 +101,7 @@ export function exportDashboardPdf(input: DashboardPdfInput) {
     margin: { left: marginX, right: marginX },
   });
 
-  const afterSummary = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
-    .finalY;
+  const afterSummary = lastAutoTableY(doc, y + 40);
 
   y = afterSummary + 10;
   doc.setFont('helvetica', 'bold');
@@ -120,8 +125,7 @@ export function exportDashboardPdf(input: DashboardPdfInput) {
     margin: { left: marginX, right: marginX },
   });
 
-  const afterProducts = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
-    .finalY;
+  const afterProducts = lastAutoTableY(doc, y + 40);
 
   y = afterProducts + 10;
   if (y > 250) {

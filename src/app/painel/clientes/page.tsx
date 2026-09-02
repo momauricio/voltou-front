@@ -7,9 +7,7 @@ import { PageHeader } from '@/components/painel/page-header';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
-  MOCK_PRODUCTS,
   createCustomer,
-  listCustomers,
   subscribeCustomers,
   upsertCustomerFromImport,
   type ClienteStatus,
@@ -23,6 +21,7 @@ import {
 import { ImportCenter } from '@/components/painel/import-center';
 import {
   createApiCustomer,
+  getStoredAccessToken,
   getStoredTenantContext,
   listApiCustomers,
   listApiProducts,
@@ -30,6 +29,10 @@ import {
   type ApiProduct,
 } from '@/lib/api';
 import { mapApiCustomerSummary } from '@/lib/customers-api-adapter';
+import {
+  lojistaApiLoadError,
+  lojistaDemoBannerVisible,
+} from '@/lib/lojista-panel-ux';
 
 const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'danger'> = {
   Retornou: 'success',
@@ -37,6 +40,8 @@ const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'dang
   Aguardando: 'muted',
   Inativo: 'danger',
 };
+
+const EMPTY_CUSTOMERS: MockCustomer[] = [];
 
 export default function ClientesPage() {
   return (
@@ -61,7 +66,7 @@ function ClientesPageInner() {
 
   const [novoNome, setNovoNome] = useState('');
   const [novoWhatsapp, setNovoWhatsapp] = useState('');
-  const [novoProduto, setNovoProduto] = useState(MOCK_PRODUCTS[0].nome);
+  const [novoProduto, setNovoProduto] = useState('');
 
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [csvPreview, setCsvPreview] = useState<CustomerCsvRow[]>([]);
@@ -76,13 +81,22 @@ function ClientesPageInner() {
   const [apiClientes, setApiClientes] = useState<MockCustomer[] | null>(null);
   const [apiProducts, setApiProducts] = useState<ApiProduct[] | null>(null);
   const [apiErro, setApiErro] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const showDemoBanner = lojistaDemoBannerVisible({
+    accessToken: getStoredAccessToken(),
+  });
 
   useEffect(() => subscribeCustomers(() => refresh()), []);
 
   useEffect(() => {
     let cancelled = false;
     void resolveTenantContext().then((ctx) => {
-      if (cancelled || !ctx.tenantId || !ctx.storeId) return;
+      if (cancelled) return;
+      if (!ctx.tenantId || !ctx.storeId) {
+        setApiErro(lojistaApiLoadError());
+        setLoading(false);
+        return;
+      }
       setTenantCtx({ tenantId: ctx.tenantId, storeId: ctx.storeId });
     });
     return () => {
@@ -105,11 +119,12 @@ function ClientesPageInner() {
         setApiErro(null);
       } catch (err) {
         if (cancelled) return;
+        setApiClientes([]);
         setApiErro(
-          err instanceof Error
-            ? `Não foi possível carregar da API (${err.message}) — mostrando dados de demonstração.`
-            : 'Não foi possível carregar da API — mostrando dados de demonstração.',
+          lojistaApiLoadError(err instanceof Error ? err.message : undefined),
         );
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -136,12 +151,10 @@ function ClientesPageInner() {
   }, [apiProducts]);
 
   const usingApi = apiClientes !== null;
-  const clientes = apiClientes ?? listCustomers();
+  const clientes = apiClientes ?? EMPTY_CUSTOMERS;
 
   const produtoOptions = useMemo(
-    () =>
-      apiProducts?.map((p) => ({ id: p.id, nome: p.name })) ??
-      MOCK_PRODUCTS.map((p) => ({ id: p.id, nome: p.nome })),
+    () => apiProducts?.map((p) => ({ id: p.id, nome: p.name })) ?? [],
     [apiProducts],
   );
 
@@ -315,17 +328,17 @@ function ClientesPageInner() {
         }
       />
 
-      {!usingApi && !tenantCtx && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Você está vendo <span className="font-semibold">dados de demonstração</span>.
-          Entre na sua conta para ver seus clientes reais.
-        </div>
-      )}
+      {showDemoBanner ? (
+        <p className="text-sm text-muted-foreground">Faça login para ver os clientes da loja.</p>
+      ) : null}
       {apiErro && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {apiErro}
         </div>
       )}
+      {loading && !apiErro ? (
+        <p className="text-sm text-muted-foreground">Carregando clientes…</p>
+      ) : null}
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">

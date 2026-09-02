@@ -19,6 +19,9 @@ const forbidden = [
   'disparos ficam em Campanhas',
   'Ir às campanhas',
   'Mais opções',
+  'Fila de campanhas',
+  'Fila de aprovação',
+  'Fila de envio',
 ];
 
 for (const needle of forbidden) {

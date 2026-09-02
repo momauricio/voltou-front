@@ -27,4 +27,7 @@ export const LOJISTA_FORBIDDEN_UI = [
   'disparos ficam em Campanhas',
   'Ir às campanhas',
   'Mais opções',
+  'Fila de campanhas',
+  'Fila de aprovação',
+  'Fila de envio',
 ] as const;
