@@ -18,8 +18,8 @@ const FAQ_ITEMS = [
     a: 'O cliente paga no link da sua loja (hoje pelo Mercado Pago; outras formas de checkout vão entrar depois). O dinheiro da venda vai pra você. A Voltou só fica com a comissão quando essa venda recuperada entra. Sem mensalidade e sem cartão pra abrir a conta.',
   },
   {
-    q: 'Como é a comissão?',
-    a: 'Comissão só na venda extra que a Voltou fecha. Sem mensalidade. Sem cartão. Se o cliente não pagar, você não paga comissão.',
+    q: 'Qual a porcentagem de comissão?',
+    a: '5% sobre o valor dos produtos da venda recuperada. Frete não entra na base da comissão. Se o cliente não pagar, você não paga comissão.',
   },
   {
     q: 'E se o cliente não quiser mais receber mensagem?',
