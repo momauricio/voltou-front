@@ -3,7 +3,7 @@ const AGENDA_ITEMS = [
   'Comprar produto certo',
   'Gerenciar a equipe',
   'Controlar estoque',
-  'Pensar em campanha pra vender mais',
+  'Pensar em vender de novo',
 ] as const;
 
 const ASSET_CHIPS = ['Nome', 'WhatsApp', 'Interesse'] as const;

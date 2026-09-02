@@ -1,10 +1,10 @@
+import { LandingAngles } from '@/components/landing/landing-angles';
 import { LandingCta } from '@/components/landing/landing-cta';
 import { LandingFaq } from '@/components/landing/landing-faq';
 import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingIcp } from '@/components/landing/landing-icp';
 import { LandingMechanism } from '@/components/landing/landing-mechanism';
 import { LandingNav } from '@/components/landing/landing-nav';
-import { LandingPhysicalStore } from '@/components/landing/landing-physical-store';
 import { LandingPricing } from '@/components/landing/landing-pricing';
 import { LandingWhatsappMock } from '@/components/landing/landing-whatsapp-mock';
 
@@ -14,7 +14,7 @@ export default function Home() {
       <LandingNav />
       <main>
         <LandingHero />
-        <LandingPhysicalStore />
+        <LandingAngles />
         <LandingMechanism />
         <LandingWhatsappMock />
         <LandingPricing />
