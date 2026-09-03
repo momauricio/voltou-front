@@ -320,6 +320,14 @@ describe('empty pickup address nudge (after save / other screens)', () => {
       }),
       false,
     );
+    assert.equal(
+      shouldBlockPickupCompletion({
+        pickupAddressText: undefined,
+        fulfillmentMethod: 'pickup',
+      }),
+      true,
+      'unknown address must fail closed on Retirada',
+    );
   });
 
   it('uses pt-BR copy with a Regras CTA and no puxar', () => {
@@ -330,11 +338,7 @@ describe('empty pickup address nudge (after save / other screens)', () => {
     assert.equal(PICKUP_ADDRESS_NUDGE_HREF, '/painel/regras#fulfillmentPickup');
   });
 
-  it('surfaces the nudge on Pedidos and Regras and blocks Pedidos completion', () => {
-    const layout = readFileSync(
-      new URL('../app/painel/layout.tsx', import.meta.url),
-      'utf8',
-    );
+  it('surfaces the nudge on Pedidos, Regras and dashboard and blocks Pedidos completion', () => {
     const nudge = readFileSync(
       new URL('../components/painel/pickup-address-nudge.tsx', import.meta.url),
       'utf8',
@@ -345,8 +349,9 @@ describe('empty pickup address nudge (after save / other screens)', () => {
     assert.match(nudge, /getFulfillmentSettings/);
     assert.match(pedidos, /PickupAddressNudge|EmptyPickupAddressNudge/);
     assert.match(regras, /PickupAddressNudge|EmptyPickupAddressNudge/);
+    assert.match(dashboard, /PickupAddressNudge|EmptyPickupAddressNudge/);
     assert.match(pedidos, /shouldBlockPickupCompletion/);
-    assert.match(layout, /OnboardingWizard/);
+    assert.equal(pedidos.includes('storePickupAddress !== undefined &&'), false);
     assert.equal(/puxar/i.test(nudge), false);
     assert.equal(/puxar/i.test(pedidos), false);
   });

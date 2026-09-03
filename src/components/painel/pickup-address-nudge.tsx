@@ -26,15 +26,20 @@ export function PickupAddressNudge() {
     }
     try {
       const [settings, orders] = await Promise.all([
-        getFulfillmentSettings(ctx.tenantId, ctx.storeId),
-        listMerchantOrders(ctx.tenantId, ctx.storeId),
+        getFulfillmentSettings(ctx.tenantId, ctx.storeId).catch(() => null),
+        listMerchantOrders(ctx.tenantId, ctx.storeId).catch(() => []),
       ]);
-      setVisible(
-        shouldNudgeEmptyPickupAddress({
-          pickupAddressText: settings.pickupAddressText,
-          items: orders,
-        }),
-      );
+      const items = orders ?? [];
+      if (settings) {
+        setVisible(
+          shouldNudgeEmptyPickupAddress({
+            pickupAddressText: settings.pickupAddressText,
+            items,
+          }),
+        );
+        return;
+      }
+      setVisible(items.some((order) => order.fulfillmentMethod === 'pickup'));
     } catch {
       setVisible(false);
     }
@@ -62,6 +67,14 @@ export function PickupAddressNudge() {
       <Link
         href={PICKUP_ADDRESS_NUDGE_HREF}
         className="mt-2 inline-flex font-semibold underline underline-offset-2"
+        onClick={(event) => {
+          if (typeof window === 'undefined') return;
+          if (!window.location.pathname.startsWith('/painel/regras')) return;
+          event.preventDefault();
+          const field = document.getElementById('fulfillmentPickup');
+          field?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          field?.focus();
+        }}
       >
         {PICKUP_ADDRESS_NUDGE_CTA}
       </Link>

@@ -206,7 +206,6 @@ export default function PedidosPage() {
     if (!tenantCtx) return;
     const order = orders.find((o) => o.id === orderId);
     if (
-      storePickupAddress !== undefined &&
       order &&
       shouldBlockPickupCompletion({
         pickupAddressText: storePickupAddress,
@@ -401,12 +400,10 @@ function PedidoActions({
 }: PedidoActionsProps) {
   const cancelled = order.status === 'cancelled';
   const actions = availableActions(order);
-  const blockPickupComplete =
-    storePickupAddress !== undefined &&
-    shouldBlockPickupCompletion({
-      pickupAddressText: storePickupAddress,
-      fulfillmentMethod: order.fulfillmentMethod,
-    });
+  const blockPickupComplete = shouldBlockPickupCompletion({
+    pickupAddressText: storePickupAddress,
+    fulfillmentMethod: order.fulfillmentMethod,
+  });
   if (cancelled) {
     return (
       <span className="text-xs font-medium text-red-700">Cancelado</span>

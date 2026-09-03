@@ -108,6 +108,16 @@ export const FulfillmentSettingsCard = forwardRef<
     void refresh();
   }, [sessionReady, hasSession, refresh]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#fulfillmentPickup') return;
+    document.getElementById('fulfillmentPickup')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    document.getElementById('fulfillmentPickup')?.focus();
+  }, [sessionReady]);
+
   const saveFulfillment = useCallback(async (): Promise<boolean> => {
     setOk(null);
     if (!tenantId || !storeId) {
