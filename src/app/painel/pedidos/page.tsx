@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/painel/page-header';
+import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
   cancelMerchantOrder,
+  getFulfillmentSettings,
   listMerchantOrders,
   resolveTenantContext,
   updateOrderFulfillment,
@@ -14,6 +16,9 @@ import {
 import {
   formatDateTimePtBr,
   merchantOrderRefs,
+  PICKUP_ADDRESS_CHANGED_EVENT,
+  PICKUP_ADDRESS_NUDGE_MESSAGE,
+  shouldBlockPickupCompletion,
 } from '@/lib/lojista-panel-ux';
 
 type FulfillmentFilter = 'todos' | 'awaiting' | 'ready' | 'shipped' | 'done';
@@ -112,6 +117,9 @@ export default function PedidosPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [storePickupAddress, setStorePickupAddress] = useState<
+    string | undefined
+  >(undefined);
 
   const reload = useCallback(
     async (tenantId: string, storeId: string, statusFilter: FulfillmentFilter) => {
@@ -145,6 +153,33 @@ export default function PedidosPage() {
   useEffect(() => {
     if (!tenantCtx) return;
     let cancelled = false;
+    const loadPickupAddress = async () => {
+      try {
+        const settings = await getFulfillmentSettings(
+          tenantCtx.tenantId,
+          tenantCtx.storeId,
+        );
+        if (!cancelled) {
+          setStorePickupAddress(settings.pickupAddressText ?? '');
+        }
+      } catch {
+        if (!cancelled) setStorePickupAddress(undefined);
+      }
+    };
+    void loadPickupAddress();
+    const onChanged = () => {
+      void loadPickupAddress();
+    };
+    window.addEventListener(PICKUP_ADDRESS_CHANGED_EVENT, onChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PICKUP_ADDRESS_CHANGED_EVENT, onChanged);
+    };
+  }, [tenantCtx]);
+
+  useEffect(() => {
+    if (!tenantCtx) return;
+    let cancelled = false;
     void (async () => {
       setLoading(true);
       try {
@@ -169,11 +204,23 @@ export default function PedidosPage() {
 
   async function handleAction(orderId: string, status: FulfillmentAction) {
     if (!tenantCtx) return;
+    const order = orders.find((o) => o.id === orderId);
+    if (
+      storePickupAddress !== undefined &&
+      order &&
+      shouldBlockPickupCompletion({
+        pickupAddressText: storePickupAddress,
+        fulfillmentMethod: order.fulfillmentMethod,
+      }) &&
+      (status === 'ready' || status === 'done')
+    ) {
+      window.alert(PICKUP_ADDRESS_NUDGE_MESSAGE);
+      return;
+    }
     setActionBusy(`${orderId}:${status}`);
     try {
       let trackingCode: string | undefined;
       if (status === 'shipped') {
-        const order = orders.find((o) => o.id === orderId);
         const current = order?.trackingCode?.trim() ?? '';
         const entered = window.prompt(
           'Código de rastreio (opcional):',
@@ -234,6 +281,8 @@ export default function PedidosPage() {
         subtitle="Pedidos pagos aguardando retirada ou entrega."
       />
 
+      <PickupAddressNudge />
+
       {erro && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {erro}{' '}
@@ -283,6 +332,7 @@ export default function PedidosPage() {
                   actionBusy={actionBusy}
                   onAction={handleAction}
                   onCancel={handleCancel}
+                  storePickupAddress={storePickupAddress}
                 />
               ))
             )}
@@ -320,6 +370,7 @@ export default function PedidosPage() {
                         actionBusy={actionBusy}
                         onAction={handleAction}
                         onCancel={handleCancel}
+                        storePickupAddress={storePickupAddress}
                       />
                     ))
                   )}
@@ -338,6 +389,7 @@ type PedidoActionsProps = {
   actionBusy: string | null;
   onAction: (orderId: string, status: FulfillmentAction) => void;
   onCancel: (orderId: string) => void;
+  storePickupAddress?: string;
 };
 
 function PedidoActions({
@@ -345,9 +397,16 @@ function PedidoActions({
   actionBusy,
   onAction,
   onCancel,
+  storePickupAddress,
 }: PedidoActionsProps) {
   const cancelled = order.status === 'cancelled';
   const actions = availableActions(order);
+  const blockPickupComplete =
+    storePickupAddress !== undefined &&
+    shouldBlockPickupCompletion({
+      pickupAddressText: storePickupAddress,
+      fulfillmentMethod: order.fulfillmentMethod,
+    });
   if (cancelled) {
     return (
       <span className="text-xs font-medium text-red-700">Cancelado</span>
@@ -358,11 +417,13 @@ function PedidoActions({
       {actions.map((action) => {
         const busy = actionBusy === `${order.id}:${action}`;
         const primary = action !== 'done' || actions.length === 1;
+        const blocked = blockPickupComplete && (action === 'ready' || action === 'done');
         return (
           <button
             key={action}
             type="button"
-            disabled={Boolean(actionBusy)}
+            disabled={Boolean(actionBusy) || blocked}
+            title={blocked ? PICKUP_ADDRESS_NUDGE_MESSAGE : undefined}
             onClick={() => onAction(order.id, action)}
             className={`inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold transition disabled:opacity-60 ${
               primary
@@ -411,7 +472,13 @@ function PedidoRefs({ order }: { order: MerchantOrder }) {
   );
 }
 
-function PedidoCard({ order, actionBusy, onAction, onCancel }: PedidoActionsProps) {
+function PedidoCard({
+  order,
+  actionBusy,
+  onAction,
+  onCancel,
+  storePickupAddress,
+}: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
   const address = order.fulfillmentMethod === 'delivery' ? formatAddress(order) : null;
   const cancelled = order.status === 'cancelled';
@@ -467,13 +534,20 @@ function PedidoCard({ order, actionBusy, onAction, onCancel }: PedidoActionsProp
           actionBusy={actionBusy}
           onAction={onAction}
           onCancel={onCancel}
+          storePickupAddress={storePickupAddress}
         />
       </div>
     </li>
   );
 }
 
-function PedidoRow({ order, actionBusy, onAction, onCancel }: PedidoActionsProps) {
+function PedidoRow({
+  order,
+  actionBusy,
+  onAction,
+  onCancel,
+  storePickupAddress,
+}: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
   const address = order.fulfillmentMethod === 'delivery' ? formatAddress(order) : null;
   const cancelled = order.status === 'cancelled';
@@ -523,6 +597,7 @@ function PedidoRow({ order, actionBusy, onAction, onCancel }: PedidoActionsProps
           actionBusy={actionBusy}
           onAction={onAction}
           onCancel={onCancel}
+          storePickupAddress={storePickupAddress}
         />
       </td>
     </tr>

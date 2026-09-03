@@ -38,8 +38,11 @@ import {
   type CustomerDetailView,
 } from '@/lib/customers-api-adapter';
 import {
+  checkoutStatusLabelPtBr,
+  copyCheckoutLinkLabel,
   merchantCustomerPhone,
   merchantOrderRefs,
+  uniqueCheckouts,
 } from '@/lib/lojista-panel-ux';
 
 const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'danger'> = {
@@ -47,13 +50,6 @@ const STATUS_TONE: Record<ClienteStatus, 'success' | 'warning' | 'muted' | 'dang
   Contatado: 'warning',
   Aguardando: 'muted',
   Inativo: 'danger',
-};
-
-const CHECKOUT_STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendente',
-  paid: 'Pago',
-  expired: 'Expirado',
-  cancelled: 'Cancelado',
 };
 
 const CHECKOUT_STATUS_TONE: Record<string, 'success' | 'warning' | 'muted' | 'danger'> = {
@@ -338,6 +334,7 @@ function ClienteDetailInner({ id }: { id: string }) {
     phoneMasked: customer.phoneMasked,
     whatsapp: customer.whatsapp,
   });
+  const fichaCheckouts = uniqueCheckouts(customer.checkouts);
 
   return (
     <div className="space-y-6">
@@ -481,18 +478,18 @@ function ClienteDetailInner({ id }: { id: string }) {
             )}
           </SideCard>
 
-          <SideCard title="Checkouts" count={customer.checkouts.length}>
-            {customer.checkouts.length === 0 ? (
+          <SideCard title="Checkouts" count={fichaCheckouts.length}>
+            {fichaCheckouts.length === 0 ? (
               <EmptyState text="Nenhum checkout nesta ficha." />
             ) : (
-              customer.checkouts.map((checkout) => {
+              fichaCheckouts.map((checkout) => {
                 const refs = merchantOrderRefs(checkout);
                 return (
                 <div key={checkout.id} className="border-b border-border py-3 last:border-0 last:pb-0 first:pt-0">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-foreground">{checkout.productNameSnapshot}</p>
                     <StatusBadge
-                      label={CHECKOUT_STATUS_LABEL[checkout.status]}
+                      label={checkoutStatusLabelPtBr(checkout.status)}
                       tone={CHECKOUT_STATUS_TONE[checkout.status]}
                     />
                   </div>
@@ -510,13 +507,16 @@ function ClienteDetailInner({ id }: { id: string }) {
                     <button
                       type="button"
                       onClick={() => copyUrl(checkout.paymentUrl)}
-                      className="inline-flex h-7 items-center gap-1 rounded-lg border border-border px-2 text-xs font-medium text-foreground transition hover:bg-muted"
+                      className="inline-flex min-h-7 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-medium text-foreground transition hover:bg-muted"
                     >
-                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                         <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                       </svg>
-                      Copiar link
+                      {copyCheckoutLinkLabel({
+                        createdAt: checkout.createdAt,
+                        status: checkout.status,
+                      })}
                     </button>
                     {checkout.status === 'pending' && (
                       <>

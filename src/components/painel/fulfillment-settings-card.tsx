@@ -15,6 +15,7 @@ import {
   validateFulfillmentMerchantForm,
   type FulfillmentMerchantFormErrors,
 } from '@/lib/br-mobile-national';
+import { notifyPickupAddressChanged } from '@/lib/lojista-panel-ux';
 
 const fieldClass =
   'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -143,6 +144,7 @@ export const FulfillmentSettingsCard = forwardRef<
         orderNotifyPhoneE164: parsed.orderNotifyPhoneE164,
       });
       applySettings(saved);
+      notifyPickupAddressChanged();
       setOk('Configurações de entrega salvas.');
       return true;
     } catch (err) {
