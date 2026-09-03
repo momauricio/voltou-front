@@ -2,11 +2,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import {
+  copyCheckoutLinkLabel,
   formatDatePtBr,
   formatDateTimePtBr,
   merchantCustomerPhone,
   merchantOrderRefs,
   merchantVoltouOrderLabel,
+  PICKUP_ADDRESS_NUDGE_CTA,
+  PICKUP_ADDRESS_NUDGE_HREF,
+  PICKUP_ADDRESS_NUDGE_MESSAGE,
+  shouldBlockPickupCompletion,
+  shouldNudgeEmptyPickupAddress,
   uniqueCheckouts,
 } from './lojista-panel-ux.ts';
 
@@ -241,5 +247,145 @@ describe('P0 honesty still holds (source)', () => {
       ).includes('Salvar entrega e pedidos'),
       false,
     );
+  });
+});
+
+describe('empty pickup address nudge (after save / other screens)', () => {
+  it('nags only when pickup address is blank AND there is a Retirada order', () => {
+    const pickup = [{ fulfillmentMethod: 'pickup' }];
+    const delivery = [{ fulfillmentMethod: 'delivery' }];
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: '',
+        items: pickup,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: '   ',
+        items: pickup,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: null,
+        items: pickup,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: 'Rua Exemplo, 100',
+        items: pickup,
+      }),
+      false,
+    );
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: '',
+        items: delivery,
+      }),
+      false,
+    );
+    assert.equal(
+      shouldNudgeEmptyPickupAddress({
+        pickupAddressText: '',
+        items: [],
+      }),
+      false,
+    );
+  });
+
+  it('blocks completing a Retirada pedido while the store address is empty', () => {
+    assert.equal(
+      shouldBlockPickupCompletion({
+        pickupAddressText: '',
+        fulfillmentMethod: 'pickup',
+      }),
+      true,
+    );
+    assert.equal(
+      shouldBlockPickupCompletion({
+        pickupAddressText: 'Rua Exemplo, 100',
+        fulfillmentMethod: 'pickup',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldBlockPickupCompletion({
+        pickupAddressText: '',
+        fulfillmentMethod: 'delivery',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldBlockPickupCompletion({
+        pickupAddressText: undefined,
+        fulfillmentMethod: 'pickup',
+      }),
+      true,
+      'unknown address must fail closed on Retirada',
+    );
+  });
+
+  it('uses pt-BR copy with a Regras CTA and no puxar', () => {
+    assert.match(PICKUP_ADDRESS_NUDGE_MESSAGE, /retirada/i);
+    assert.match(PICKUP_ADDRESS_NUDGE_MESSAGE, /endere[cç]o/i);
+    assert.equal(/puxar/i.test(PICKUP_ADDRESS_NUDGE_MESSAGE), false);
+    assert.equal(PICKUP_ADDRESS_NUDGE_CTA, 'Cadastrar endereço');
+    assert.equal(PICKUP_ADDRESS_NUDGE_HREF, '/painel/regras#fulfillmentPickup');
+  });
+
+  it('surfaces the nudge on Pedidos, Regras and dashboard and blocks Pedidos completion', () => {
+    const nudge = readFileSync(
+      new URL('../components/painel/pickup-address-nudge.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(nudge, /shouldNudgeEmptyPickupAddress/);
+    assert.match(nudge, /PICKUP_ADDRESS_NUDGE_CTA/);
+    assert.match(nudge, /listMerchantOrders/);
+    assert.match(nudge, /getFulfillmentSettings/);
+    assert.match(pedidos, /PickupAddressNudge|EmptyPickupAddressNudge/);
+    assert.match(regras, /PickupAddressNudge|EmptyPickupAddressNudge/);
+    assert.match(dashboard, /PickupAddressNudge|EmptyPickupAddressNudge/);
+    assert.match(pedidos, /shouldBlockPickupCompletion/);
+    assert.equal(pedidos.includes('storePickupAddress !== undefined &&'), false);
+    assert.equal(/puxar/i.test(nudge), false);
+    assert.equal(/puxar/i.test(pedidos), false);
+  });
+});
+
+describe('ficha Copiar link shows date and status', () => {
+  it('labels each copy control with dd/mm/aaaa and the checkout status', () => {
+    assert.equal(
+      copyCheckoutLinkLabel({
+        createdAt: '2026-09-02',
+        status: 'paid',
+      }),
+      'Copiar link · 02/09/2026 · Pago',
+    );
+    assert.equal(
+      copyCheckoutLinkLabel({
+        createdAt: '2026-01-15T18:00:00.000Z',
+        status: 'pending',
+      }),
+      'Copiar link · 15/01/2026 · Pendente',
+    );
+    assert.equal(
+      copyCheckoutLinkLabel({
+        createdAt: '2026-08-31',
+        status: 'expired',
+      }),
+      'Copiar link · 31/08/2026 · Expirado',
+    );
+  });
+
+  it('wires the helper on the ficha without reintroducing duplicate checkouts', () => {
+    assert.match(ficha, /copyCheckoutLinkLabel/);
+    assert.match(ficha, /uniqueCheckouts/);
+    assert.match(adapter, /uniqueCheckouts/);
+    assert.equal(ficha.includes('Copiar link\n'), false);
   });
 });
