@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { KpiCard } from '@/components/painel/kpi-card';
 import { PageHeader } from '@/components/painel/page-header';
+import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
 import { exportDashboardPdf } from '@/lib/export-dashboard-pdf';
 import {
   aggregateByCategory,
@@ -365,6 +366,7 @@ export default function PainelDashboardPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
+      <PickupAddressNudge />
       <PageHeader
         title={ownerFirstName ? `Olá, ${ownerFirstName}` : 'Dashboard'}
         subtitle="Acompanhe o que está voltando — e o próximo passo para recuperar vendas."

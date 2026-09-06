@@ -249,6 +249,72 @@ function formatOwnerPhone(raw: string): string {
   return raw;
 }
 
+export const CHECKOUT_STATUS_LABEL_PT_BR: Record<string, string> = {
+  pending: 'Pendente',
+  paid: 'Pago',
+  expired: 'Expirado',
+  cancelled: 'Cancelado',
+};
+
+export function checkoutStatusLabelPtBr(status: string): string {
+  return CHECKOUT_STATUS_LABEL_PT_BR[status] ?? status;
+}
+
+/** Copy-link control on the customer ficha: date + status distinguish two links. */
+export function copyCheckoutLinkLabel(input: {
+  createdAt: string | number | Date | null | undefined;
+  status: string;
+}): string {
+  return `Copiar link · ${formatDatePtBr(input.createdAt)} · ${checkoutStatusLabelPtBr(input.status)}`;
+}
+
+export type PickupFulfillmentItem = {
+  fulfillmentMethod?: string | null;
+};
+
+export function pickupAddressIsBlank(
+  pickupAddressText: string | null | undefined,
+): boolean {
+  return !pickupAddressText?.trim();
+}
+
+/**
+ * Persistent nag leftover after Regras save-time validation:
+ * empty store pickup address AND at least one Retirada order/checkout.
+ */
+export function shouldNudgeEmptyPickupAddress(input: {
+  pickupAddressText: string | null | undefined;
+  items: readonly PickupFulfillmentItem[];
+}): boolean {
+  if (!pickupAddressIsBlank(input.pickupAddressText)) return false;
+  return input.items.some((item) => item.fulfillmentMethod === 'pickup');
+}
+
+/** Block Pronto/Concluir on a Retirada pedido while the store address is empty. */
+export function shouldBlockPickupCompletion(input: {
+  pickupAddressText: string | null | undefined;
+  fulfillmentMethod?: string | null;
+}): boolean {
+  return (
+    pickupAddressIsBlank(input.pickupAddressText) &&
+    input.fulfillmentMethod === 'pickup'
+  );
+}
+
+export const PICKUP_ADDRESS_NUDGE_MESSAGE =
+  'Há pedido de Retirada sem o endereço da loja. Cadastre o endereço para o cliente saber onde retirar.';
+
+export const PICKUP_ADDRESS_NUDGE_CTA = 'Cadastrar endereço';
+
+export const PICKUP_ADDRESS_NUDGE_HREF = '/painel/regras#fulfillmentPickup';
+
+export const PICKUP_ADDRESS_CHANGED_EVENT = 'voltou:pickup-address-changed';
+
+export function notifyPickupAddressChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(PICKUP_ADDRESS_CHANGED_EVENT));
+}
+
 /**
  * WhatsApp the lojista already has on the owner customer payload.
  * Never reads phoneEnc (no client-side reveal).

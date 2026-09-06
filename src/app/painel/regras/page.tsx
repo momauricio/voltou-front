@@ -6,6 +6,7 @@ import {
   FulfillmentSettingsCard,
   type FulfillmentSettingsCardHandle,
 } from '@/components/painel/fulfillment-settings-card';
+import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
 import {
   getStoreRules,
   resolveTenantContext,
@@ -315,6 +316,8 @@ export default function RegrasPage() {
             : 'As regras só gravam na conta depois que o carregamento da API funcionar. Nada é salvo só no navegador.'}
         </div>
       )}
+
+      <PickupAddressNudge />
 
       <FulfillmentSettingsCard ref={fulfillmentRef} />
 
