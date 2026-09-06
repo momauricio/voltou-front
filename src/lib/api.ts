@@ -872,23 +872,39 @@ export async function updateOrderFulfillment(payload: {
   checkoutId: string;
   tenantId: string;
   storeId: string;
-  status: 'ready' | 'shipped' | 'done';
-  trackingCode?: string;
+  status?: 'ready' | 'shipped' | 'done';
+  trackingCode?: string | null;
 }) {
-  return jsonFetch<{ id: string; fulfillmentStatus: string }>(
-    `/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({
-        tenantId: payload.tenantId,
-        storeId: payload.storeId,
-        status: payload.status,
-        ...(payload.trackingCode != null
-          ? { trackingCode: payload.trackingCode }
-          : {}),
-      }),
-    },
-  );
+  return jsonFetch<{
+    id: string;
+    fulfillmentStatus?: string;
+    trackingCode?: string | null;
+  }>(`/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      tenantId: payload.tenantId,
+      storeId: payload.storeId,
+      ...(payload.status != null ? { status: payload.status } : {}),
+      ...(payload.trackingCode !== undefined
+        ? { trackingCode: payload.trackingCode }
+        : {}),
+    }),
+  });
+}
+
+/** Owner JWT + tenant/store scoped. Does not change fulfillment status. */
+export async function updateOrderTracking(payload: {
+  checkoutId: string;
+  tenantId: string;
+  storeId: string;
+  trackingCode: string | null;
+}) {
+  return updateOrderFulfillment({
+    checkoutId: payload.checkoutId,
+    tenantId: payload.tenantId,
+    storeId: payload.storeId,
+    trackingCode: payload.trackingCode,
+  });
 }
 
 export async function cancelMerchantOrder(payload: {

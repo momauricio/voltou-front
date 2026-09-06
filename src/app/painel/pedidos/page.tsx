@@ -11,6 +11,7 @@ import {
   listMerchantOrders,
   resolveTenantContext,
   updateOrderFulfillment,
+  updateOrderTracking,
   type MerchantOrder,
 } from '@/lib/api';
 import {
@@ -20,6 +21,10 @@ import {
   PICKUP_ADDRESS_NUDGE_MESSAGE,
   shouldBlockPickupCompletion,
 } from '@/lib/lojista-panel-ux';
+import {
+  normalizeTrackingCode,
+  orderAllowsTrackingCode,
+} from '@/lib/order-tracking';
 
 type FulfillmentFilter = 'todos' | 'awaiting' | 'ready' | 'shipped' | 'done';
 type FulfillmentAction = 'ready' | 'shipped' | 'done';
@@ -218,31 +223,48 @@ export default function PedidosPage() {
     }
     setActionBusy(`${orderId}:${status}`);
     try {
-      let trackingCode: string | undefined;
-      if (status === 'shipped') {
-        const current = order?.trackingCode?.trim() ?? '';
-        const entered = window.prompt(
-          'Código de rastreio (opcional):',
-          current,
-        );
-        if (entered === null) {
-          setActionBusy(null);
-          return;
-        }
-        trackingCode = entered.trim() || undefined;
-      }
       await updateOrderFulfillment({
         checkoutId: orderId,
         tenantId: tenantCtx.tenantId,
         storeId: tenantCtx.storeId,
         status,
-        ...(trackingCode ? { trackingCode } : {}),
       });
       await reload(tenantCtx.tenantId, tenantCtx.storeId, filter);
       setErro(null);
     } catch (err) {
       window.alert(
         err instanceof Error ? err.message : 'Erro ao atualizar pedido.',
+      );
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function handleSaveTracking(
+    orderId: string,
+    trackingCode: string | null,
+  ) {
+    if (!tenantCtx) return;
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || !orderAllowsTrackingCode(order.fulfillmentMethod)) {
+      window.alert('Código de rastreio só vale para entrega em casa.');
+      return;
+    }
+    setActionBusy(`${orderId}:tracking`);
+    try {
+      await updateOrderTracking({
+        checkoutId: orderId,
+        tenantId: tenantCtx.tenantId,
+        storeId: tenantCtx.storeId,
+        trackingCode,
+      });
+      await reload(tenantCtx.tenantId, tenantCtx.storeId, filter);
+      setErro(null);
+    } catch (err) {
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : 'Erro ao salvar o código de rastreio.',
       );
     } finally {
       setActionBusy(null);
@@ -331,6 +353,7 @@ export default function PedidosPage() {
                   actionBusy={actionBusy}
                   onAction={handleAction}
                   onCancel={handleCancel}
+                  onSaveTracking={handleSaveTracking}
                   storePickupAddress={storePickupAddress}
                 />
               ))
@@ -369,6 +392,7 @@ export default function PedidosPage() {
                         actionBusy={actionBusy}
                         onAction={handleAction}
                         onCancel={handleCancel}
+                        onSaveTracking={handleSaveTracking}
                         storePickupAddress={storePickupAddress}
                       />
                     ))
@@ -388,6 +412,10 @@ type PedidoActionsProps = {
   actionBusy: string | null;
   onAction: (orderId: string, status: FulfillmentAction) => void;
   onCancel: (orderId: string) => void;
+  onSaveTracking?: (
+    orderId: string,
+    trackingCode: string | null,
+  ) => Promise<void>;
   storePickupAddress?: string;
 };
 
@@ -449,6 +477,74 @@ function PedidoActions({
   );
 }
 
+function PedidoTrackingField({
+  order,
+  disabled,
+  onSaveTracking,
+}: {
+  order: MerchantOrder;
+  disabled: boolean;
+  onSaveTracking?: (
+    orderId: string,
+    trackingCode: string | null,
+  ) => Promise<void>;
+}) {
+  const allowed = orderAllowsTrackingCode(order.fulfillmentMethod);
+  const [value, setValue] = useState(order.trackingCode ?? '');
+  const [busy, setBusy] = useState(false);
+  const fieldId = `tracking-${order.id}`;
+
+  useEffect(() => {
+    setValue(order.trackingCode ?? '');
+  }, [order.trackingCode]);
+
+  if (!allowed) return null;
+
+  async function handleSave() {
+    if (!onSaveTracking) return;
+    setBusy(true);
+    try {
+      await onSaveTracking(order.id, normalizeTrackingCode(value));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const locked = disabled || busy || order.status === 'cancelled';
+
+  return (
+    <div className="mt-2 space-y-1">
+      <label
+        htmlFor={fieldId}
+        className="block text-xs font-medium text-foreground/80"
+      >
+        Código de rastreio
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id={fieldId}
+          type="text"
+          value={value}
+          maxLength={80}
+          disabled={locked}
+          placeholder="Opcional"
+          autoComplete="off"
+          onChange={(event) => setValue(event.target.value)}
+          className="h-9 min-w-[10rem] flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+        />
+        <button
+          type="button"
+          disabled={locked}
+          onClick={() => void handleSave()}
+          className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-60"
+        >
+          {busy ? '…' : 'Salvar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PedidoRefs({ order }: { order: MerchantOrder }) {
   const refs = merchantOrderRefs(order);
   return (
@@ -474,6 +570,7 @@ function PedidoCard({
   actionBusy,
   onAction,
   onCancel,
+  onSaveTracking,
   storePickupAddress,
 }: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
@@ -509,12 +606,6 @@ function PedidoCard({
           )}
           <span>{methodLabel(order.fulfillmentMethod)}</span>
         </p>
-        {order.trackingCode && (
-          <p className="text-xs">
-            <span className="text-foreground/70">Rastreio · </span>
-            {order.trackingCode}
-          </p>
-        )}
         {address && (
           <p className="text-xs">
             <span className="text-foreground/70">Endereço · </span>
@@ -524,6 +615,11 @@ function PedidoCard({
               : ''}
           </p>
         )}
+        <PedidoTrackingField
+          order={order}
+          disabled={Boolean(actionBusy)}
+          onSaveTracking={onSaveTracking}
+        />
       </div>
       <div className="mt-3">
         <PedidoActions
@@ -543,6 +639,7 @@ function PedidoRow({
   actionBusy,
   onAction,
   onCancel,
+  onSaveTracking,
   storePickupAddress,
 }: PedidoActionsProps) {
   const status = order.fulfillmentStatus ?? 'awaiting';
@@ -560,12 +657,14 @@ function PedidoRow({
       </td>
       <td className="px-5 py-3.5 text-muted-foreground">
         <p>{itemsLabel(order)}</p>
-        {order.trackingCode && (
-          <p className="mt-1 text-xs">Rastreio {order.trackingCode}</p>
-        )}
         {address && (
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">{address}</p>
         )}
+        <PedidoTrackingField
+          order={order}
+          disabled={Boolean(actionBusy)}
+          onSaveTracking={onSaveTracking}
+        />
       </td>
       <td className="px-5 py-3.5">
         <p className="font-medium text-foreground">
