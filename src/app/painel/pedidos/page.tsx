@@ -22,6 +22,7 @@ import {
   shouldBlockPickupCompletion,
 } from '@/lib/lojista-panel-ux';
 import {
+  TRACKING_CODE_MAX,
   normalizeTrackingCode,
   orderAllowsTrackingCode,
 } from '@/lib/order-tracking';
@@ -481,9 +482,11 @@ function PedidoTrackingField({
   order,
   disabled,
   onSaveTracking,
+  variant,
 }: {
   order: MerchantOrder;
   disabled: boolean;
+  variant: 'card' | 'row';
   onSaveTracking?: (
     orderId: string,
     trackingCode: string | null,
@@ -492,7 +495,7 @@ function PedidoTrackingField({
   const allowed = orderAllowsTrackingCode(order.fulfillmentMethod);
   const [value, setValue] = useState(order.trackingCode ?? '');
   const [busy, setBusy] = useState(false);
-  const fieldId = `tracking-${order.id}`;
+  const fieldId = `tracking-${variant}-${order.id}`;
 
   useEffect(() => {
     setValue(order.trackingCode ?? '');
@@ -525,7 +528,7 @@ function PedidoTrackingField({
           id={fieldId}
           type="text"
           value={value}
-          maxLength={80}
+          maxLength={TRACKING_CODE_MAX}
           disabled={locked}
           placeholder="Opcional"
           autoComplete="off"
@@ -617,6 +620,7 @@ function PedidoCard({
         )}
         <PedidoTrackingField
           order={order}
+          variant="card"
           disabled={Boolean(actionBusy)}
           onSaveTracking={onSaveTracking}
         />
@@ -660,11 +664,6 @@ function PedidoRow({
         {address && (
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">{address}</p>
         )}
-        <PedidoTrackingField
-          order={order}
-          disabled={Boolean(actionBusy)}
-          onSaveTracking={onSaveTracking}
-        />
       </td>
       <td className="px-5 py-3.5">
         <p className="font-medium text-foreground">
@@ -677,7 +676,13 @@ function PedidoRow({
         )}
       </td>
       <td className="px-5 py-3.5 text-muted-foreground">
-        {methodLabel(order.fulfillmentMethod)}
+        <p>{methodLabel(order.fulfillmentMethod)}</p>
+        <PedidoTrackingField
+          order={order}
+          variant="row"
+          disabled={Boolean(actionBusy)}
+          onSaveTracking={onSaveTracking}
+        />
       </td>
       <td className="px-5 py-3.5">
         <StatusBadge

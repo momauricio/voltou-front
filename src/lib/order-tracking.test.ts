@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import {
+  TRACKING_CODE_MAX,
+  buildOrderTrackingPatchBody,
   normalizeTrackingCode,
   orderAllowsTrackingCode,
 } from './order-tracking.ts';
@@ -15,8 +17,12 @@ const api = readFileSync(new URL('./api.ts', import.meta.url), 'utf8');
 describe('orderAllowsTrackingCode', () => {
   it('allows the field only for home delivery, not Retirada/pickup', () => {
     assert.equal(orderAllowsTrackingCode('delivery'), true);
+    assert.equal(orderAllowsTrackingCode('DELIVERY'), true);
+    assert.equal(orderAllowsTrackingCode('home'), true);
+    assert.equal(orderAllowsTrackingCode('entrega'), true);
     assert.equal(orderAllowsTrackingCode('pickup'), false);
     assert.equal(orderAllowsTrackingCode('retirada'), false);
+    assert.equal(orderAllowsTrackingCode('PICKUP'), false);
     assert.equal(orderAllowsTrackingCode(null), false);
     assert.equal(orderAllowsTrackingCode(undefined), false);
     assert.equal(orderAllowsTrackingCode(''), false);
@@ -35,6 +41,35 @@ describe('normalizeTrackingCode', () => {
       normalizeTrackingCode('codigo-lojista')?.startsWith('http'),
       true,
     );
+    assert.equal(TRACKING_CODE_MAX, 120);
+    assert.equal(
+      normalizeTrackingCode('x'.repeat(TRACKING_CODE_MAX))?.length,
+      TRACKING_CODE_MAX,
+    );
+  });
+});
+
+describe('buildOrderTrackingPatchBody', () => {
+  it('sends tenant/store/trackingCode and omits status so fulfillment is unchanged', () => {
+    const set = buildOrderTrackingPatchBody({
+      tenantId: '11111111-1111-1111-1111-111111111111',
+      storeId: '22222222-2222-2222-2222-222222222222',
+      trackingCode: 'AB123456789BR',
+    });
+    assert.deepEqual(set, {
+      tenantId: '11111111-1111-1111-1111-111111111111',
+      storeId: '22222222-2222-2222-2222-222222222222',
+      trackingCode: 'AB123456789BR',
+    });
+    assert.equal(Object.hasOwn(set, 'status'), false);
+
+    const cleared = buildOrderTrackingPatchBody({
+      tenantId: '11111111-1111-1111-1111-111111111111',
+      storeId: '22222222-2222-2222-2222-222222222222',
+      trackingCode: null,
+    });
+    assert.equal(cleared.trackingCode, null);
+    assert.equal(Object.hasOwn(cleared, 'status'), false);
   });
 });
 
@@ -46,6 +81,10 @@ describe('Pedidos tracking field (source)', () => {
     assert.match(pedidos, /PedidoTrackingField|htmlFor=.*tracking/);
     assert.match(pedidos, /onSaveTracking|updateOrderTracking|handleSaveTracking/);
     assert.equal(pedidos.includes('window.prompt'), false);
+    assert.match(pedidos, /tracking-\$\{variant\}-/);
+    assert.match(pedidos, /variant="card"/);
+    assert.match(pedidos, /variant="row"/);
+    assert.match(pedidos, /maxLength=\{TRACKING_CODE_MAX\}|maxLength=\{120\}/);
   });
 
   it('hides or disables the field for Retirada and does not invent carrier URLs', () => {
@@ -62,7 +101,7 @@ describe('Pedidos tracking field (source)', () => {
       api,
       /\/checkouts\/\$\{encodeURIComponent\([^)]+\)\}\/fulfillment/,
     );
-    assert.match(api, /trackingCode: payload\.trackingCode/);
+    assert.match(api, /buildOrderTrackingPatchBody|buildOrderFulfillmentPatchBody/);
     assert.match(api, /listMerchantOrders/);
     assert.match(
       api,

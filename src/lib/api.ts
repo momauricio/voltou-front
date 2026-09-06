@@ -1,5 +1,9 @@
 import { assertLojistaCannotDispatch } from '@/lib/lojista-panel-policy';
 import {
+  buildOrderFulfillmentPatchBody,
+  buildOrderTrackingPatchBody,
+} from '@/lib/order-tracking';
+import {
   ApiHttpError,
   apiErrorFromBody,
   type ApiErrorBody,
@@ -881,14 +885,14 @@ export async function updateOrderFulfillment(payload: {
     trackingCode?: string | null;
   }>(`/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      tenantId: payload.tenantId,
-      storeId: payload.storeId,
-      ...(payload.status != null ? { status: payload.status } : {}),
-      ...(payload.trackingCode !== undefined
-        ? { trackingCode: payload.trackingCode }
-        : {}),
-    }),
+    body: JSON.stringify(
+      buildOrderFulfillmentPatchBody({
+        tenantId: payload.tenantId,
+        storeId: payload.storeId,
+        status: payload.status,
+        trackingCode: payload.trackingCode,
+      }),
+    ),
   });
 }
 
@@ -899,11 +903,19 @@ export async function updateOrderTracking(payload: {
   storeId: string;
   trackingCode: string | null;
 }) {
-  return updateOrderFulfillment({
-    checkoutId: payload.checkoutId,
-    tenantId: payload.tenantId,
-    storeId: payload.storeId,
-    trackingCode: payload.trackingCode,
+  return jsonFetch<{
+    id: string;
+    fulfillmentStatus?: string;
+    trackingCode?: string | null;
+  }>(`/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`, {
+    method: 'PATCH',
+    body: JSON.stringify(
+      buildOrderTrackingPatchBody({
+        tenantId: payload.tenantId,
+        storeId: payload.storeId,
+        trackingCode: payload.trackingCode,
+      }),
+    ),
   });
 }
 
