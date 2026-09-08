@@ -1,7 +1,9 @@
 'use client';
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
+import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import {
   FulfillmentSettingsCard,
   type FulfillmentSettingsCardHandle,
@@ -158,6 +160,7 @@ export default function RegrasPage() {
   const [erro, setErro] = useState<string | null>(null);
   const canSave = loadState === 'ready' && Boolean(tenantCtx);
   const fulfillmentRef = useRef<FulfillmentSettingsCardHandle>(null);
+  const { snapshot, reload: reloadOnboarding } = useOnboardingSnapshot();
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +288,7 @@ export default function RegrasPage() {
       setLoadState('ready');
       setSalvo(true);
       setTimeout(() => setSalvo(false), 3000);
+      await reloadOnboarding();
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao salvar regras.');
     } finally {
@@ -303,6 +307,12 @@ export default function RegrasPage() {
         title="Regras"
         subtitle="Configure entrega, avisos de pedido e como a Voltou conversa com seus clientes."
       />
+      {snapshot?.next ? (
+        <OnboardingEmptyState
+          snapshot={snapshot}
+          fallbackSentence="Conecte o Mercado Pago, o endereço de retirada e o WhatsApp de aviso de pedido."
+        />
+      ) : null}
       {updatedAt ? (
         <p className="text-xs text-muted-foreground">
           Atualizado em {formatDateTimePtBr(updatedAt)}

@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import Link from 'next/link';
 import { KpiCard } from '@/components/painel/kpi-card';
+import { OnboardingWizard } from '@/components/painel/onboarding-wizard';
 import { PageHeader } from '@/components/painel/page-header';
 import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
+import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import { exportDashboardPdf } from '@/lib/export-dashboard-pdf';
 import {
   aggregateByCategory,
@@ -25,6 +26,7 @@ import {
   merchantVisibleFunnelSteps,
   formatDatePtBr,
 } from '@/lib/lojista-panel-ux';
+import { shouldShowFullDashboard } from '@/lib/lojista-onboarding';
 
 type PeriodKey = '7d' | '30d' | 'mes' | '90d';
 
@@ -131,6 +133,8 @@ export default function PainelDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ownerFirstName, setOwnerFirstName] = useState('');
+  const { snapshot, loading: onboardingLoading } = useOnboardingSnapshot();
+  const showFull = snapshot ? shouldShowFullDashboard(snapshot) : false;
   const usingApi = metrics != null;
 
   useEffect(() => {
@@ -145,6 +149,12 @@ export default function PainelDashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (!showFull) {
+      setMetrics(null);
+      setLoadError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     let first = true;
     const load = async () => {
@@ -188,7 +198,7 @@ export default function PainelDashboardPage() {
       window.removeEventListener('focus', onFocus);
       window.clearInterval(id);
     };
-  }, [de, ate]);
+  }, [de, ate, showFull]);
 
   const allPerf = useMemo((): ProductPerf[] => {
     if (!metrics) return [];
@@ -364,12 +374,40 @@ export default function PainelDashboardPage() {
     }
   }
 
+  if (onboardingLoading && !snapshot) {
+    return (
+      <div className="space-y-5 sm:space-y-8">
+        <div
+          className="h-56 animate-pulse rounded-2xl border border-border bg-muted/40"
+          aria-busy="true"
+        >
+          <p className="sr-only">Carregando o próximo passo…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (snapshot && !showFull) {
+    return (
+      <div className="space-y-5 sm:space-y-8">
+        <OnboardingWizard
+          snapshot={snapshot}
+          variant="home"
+          ownerFirstName={ownerFirstName}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 sm:space-y-8">
       <PickupAddressNudge />
+      {snapshot && !snapshot.allDone ? (
+        <OnboardingWizard snapshot={snapshot} variant="compact" />
+      ) : null}
       <PageHeader
         title={ownerFirstName ? `Olá, ${ownerFirstName}` : 'Dashboard'}
-        subtitle="Acompanhe o que está voltando — e o próximo passo para recuperar vendas."
+        subtitle="Acompanhe o que está voltando — a 2ª venda a Voltou faz por você."
         actions={
           usingApi && !loading && !loadError ? (
             <button
@@ -390,27 +428,16 @@ export default function PainelDashboardPage() {
         </div>
       )}
 
-      {usingApi &&
-        !loadError &&
-        (merchantRecoveredCents ?? 0) === 0 &&
-        (salesConfirmed ?? 0) === 0 && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Ainda sem a 1ª venda recuperada
-              </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Siga o checklist: Mercado Pago → base → regras. WhatsApp é opcional. A recuperação fica com a Voltou.
-              </p>
-            </div>
-            <Link
-              href="/painel/regras"
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-            >
-              Definir regras
-            </Link>
-          </div>
-        )}
+      {snapshot?.allDone &&
+      usingApi &&
+      !loadError &&
+      (merchantRecoveredCents ?? 0) === 0 &&
+      (salesConfirmed ?? 0) === 0 ? (
+        <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
+          A 2ª venda a Voltou faz por você. As métricas aparecem quando um
+          cliente voltar.
+        </p>
+      ) : null}
 
       {usingApi && (merchantRecoveredCents ?? 0) > 0 && recentSales[0] && (
         <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950 shadow-[var(--shadow-soft)]">

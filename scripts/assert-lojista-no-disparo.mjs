@@ -90,11 +90,21 @@ const onboarding = readFileSync(
   join(root, 'src/components/painel/onboarding-wizard.tsx'),
   'utf8',
 );
-if (!onboarding.includes("id: 'whatsapp'")) {
-  throw new Error('Onboarding lost the WhatsApp step');
+const onboardingHelper = readFileSync(
+  join(root, 'src/lib/lojista-onboarding.ts'),
+  'utf8',
+);
+if (!onboardingHelper.includes("'primeiro-cliente'")) {
+  throw new Error('Onboarding must start with the 1º cliente');
 }
-if (!onboarding.includes('optional: true')) {
-  throw new Error('WhatsApp onboarding step must be optional');
+if (!onboardingHelper.includes("'primeiro-produto'")) {
+  throw new Error('Onboarding must include cadastrar 1 produto');
+}
+if (!onboardingHelper.includes("'loja-pronta'")) {
+  throw new Error('Onboarding must include Mercado Pago + retirada + aviso');
+}
+if (onboarding.includes("id: 'whatsapp'") || onboardingHelper.includes('listWhatsappConnections')) {
+  throw new Error('Store WhatsApp must stay optional on Perfil, not a checklist step');
 }
 if (onboarding.includes('Disparar a 1ª recuperação')) {
   throw new Error('Onboarding still requires the first blast');
@@ -145,8 +155,8 @@ if (/\bMais\b/.test(nav) && /aria-expanded/.test(nav)) {
   throw new Error('Painel nav still has a Mais overflow tab');
 }
 
-if (onboarding.includes("href: '/painel/whatsapp'")) {
-  throw new Error('Onboarding WhatsApp step must open Perfil, not a WhatsApp tab');
+if (onboarding.includes("href: '/painel/whatsapp'") || onboardingHelper.includes("href: '/painel/whatsapp'")) {
+  throw new Error('Onboarding must not open a WhatsApp tab');
 }
 
 const perfil = readFileSync(join(root, 'src/app/painel/perfil/page.tsx'), 'utf8');

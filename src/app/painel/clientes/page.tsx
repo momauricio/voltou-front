@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, Suspense, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
+import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
@@ -53,7 +55,9 @@ export default function ClientesPage() {
 }
 
 function ClientesPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { snapshot, reload: reloadOnboarding } = useOnboardingSnapshot();
   const [, refresh] = useReducer((n: number) => n + 1, 0);
   const [search, setSearch] = useState('');
   const [ordem, setOrdem] = useState('recentes');
@@ -197,6 +201,7 @@ function ClientesPageInner() {
               : {}),
         });
         await reloadApiCustomers();
+        await reloadOnboarding();
       } catch (err) {
         window.alert(
           err instanceof Error ? err.message : 'Erro ao criar cliente.',
@@ -232,6 +237,12 @@ function ClientesPageInner() {
     const { tenantId, storeId } = getStoredTenantContext();
     if (tenantId && storeId) setImportCenterOpen(true);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('novo') !== '1') return;
+    setModalOpen(true);
+    router.replace('/painel/clientes', { scroll: false });
+  }, [searchParams, router]);
 
   function openCsvModal() {
     setCsvModalOpen(true);
@@ -295,12 +306,19 @@ function ClientesPageInner() {
   const fieldClass =
     'mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
 
+  const listEmpty = usingApi && clientes.length === 0 && !loading;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Clientes"
-        subtitle={`${clientes.length} cadastrados · ${filtrados.length} exibidos`}
+        subtitle={
+          listEmpty
+            ? 'Cadastre o 1º cliente para a Voltou cuidar da 2ª venda.'
+            : `${clientes.length} cadastrados · ${filtrados.length} exibidos`
+        }
         actions={
+          listEmpty ? undefined : (
           <>
             <button
               type="button"
@@ -326,6 +344,7 @@ function ClientesPageInner() {
               Novo cliente
             </button>
           </>
+          )
         }
       />
 
@@ -341,6 +360,20 @@ function ClientesPageInner() {
         <p className="text-sm text-muted-foreground">Carregando clientes…</p>
       ) : null}
 
+      {listEmpty ? (
+        <OnboardingEmptyState
+          snapshot={snapshot}
+          fallbackSentence="Nenhum cliente na loja ainda."
+          fallbackCta="Cadastrar 1º cliente"
+          onFallbackCta={() => setModalOpen(true)}
+          onCtaClick={
+            snapshot?.next?.id === 'primeiro-cliente'
+              ? () => setModalOpen(true)
+              : undefined
+          }
+        />
+      ) : loading ? null : (
+      <>
       <div className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2 lg:col-span-1">
@@ -408,18 +441,8 @@ function ClientesPageInner() {
         {filtrados.length === 0 ? (
           <li className="rounded-2xl border border-border bg-card px-4 py-10 text-center shadow-[var(--shadow-soft)]">
             <p className="text-sm text-muted-foreground">
-              {usingApi && clientes.length === 0
-                ? 'Nenhum cliente na loja ainda.'
-                : 'Nenhum cliente encontrado com esses filtros.'}
+              Nenhum cliente encontrado com esses filtros.
             </p>
-            {usingApi && clientes.length === 0 && (
-              <Link
-                href="/painel/clientes?import=1"
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
-              >
-                Importar planilha do PDV
-              </Link>
-            )}
           </li>
         ) : (
           filtrados.map((c) => (
@@ -451,19 +474,7 @@ function ClientesPageInner() {
                     colSpan={6}
                     className="px-5 py-10 text-center text-sm text-muted-foreground"
                   >
-                    {usingApi && clientes.length === 0 ? (
-                      <span className="inline-flex flex-col items-center gap-3">
-                        Nenhum cliente na loja ainda.
-                        <Link
-                          href="/painel/clientes?import=1"
-                          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
-                        >
-                          Importar planilha do PDV
-                        </Link>
-                      </span>
-                    ) : (
-                      'Nenhum cliente encontrado com esses filtros.'
-                    )}
+                    Nenhum cliente encontrado com esses filtros.
                   </td>
                 </tr>
               )}
@@ -496,6 +507,8 @@ function ClientesPageInner() {
           Importar dados
         </button>
       </div>
+      </>
+      )}
 
       <Modal
         open={modalOpen}

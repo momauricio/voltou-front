@@ -114,7 +114,10 @@ export function PaymentProvidersCard() {
   const connected = connection?.connected === true;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+    <section
+      id="mercadopago"
+      className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]"
+    >
       <h2 className="text-base font-semibold text-foreground">
         Pagamentos e comissão
       </h2>
