@@ -3,7 +3,6 @@ import {
   PainelMobileChrome,
   PainelSidebar,
 } from '@/components/painel/painel-nav';
-import { OnboardingWizard } from '@/components/painel/onboarding-wizard';
 import { RedirectStaffFromPainel } from '@/components/painel/redirect-staff';
 
 export default function PainelLayout({ children }: { children: ReactNode }) {
@@ -19,7 +18,6 @@ export default function PainelLayout({ children }: { children: ReactNode }) {
           className="mx-auto w-full max-w-[1200px] flex-1 space-y-5 px-3 py-5 sm:space-y-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8"
           style={{ paddingBottom: 'calc(1.25rem + var(--painel-pad-bottom))' }}
         >
-          <OnboardingWizard />
           {children}
         </main>
       </div>

@@ -3,7 +3,9 @@
 import { FormEvent, Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
+import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import { CheckoutBrandingCard } from '@/components/painel/checkout-branding-card';
 import { PaymentProvidersCard } from '@/components/painel/payment-providers-card';
 import { WhatsappConnectCard } from '@/components/painel/whatsapp-connect-card';
@@ -14,6 +16,7 @@ const fieldClass =
 
 export default function PerfilPage() {
   const router = useRouter();
+  const { snapshot } = useOnboardingSnapshot();
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmar, setConfirmar] = useState('');
@@ -74,19 +77,26 @@ export default function PerfilPage() {
         subtitle="Gerencie WhatsApp, pagamentos, aparência do checkout e a segurança do acesso."
       />
 
-      <WhatsappConnectCard />
+      {snapshot?.next?.id === 'loja-pronta' ? (
+        <OnboardingEmptyState
+          snapshot={snapshot}
+          fallbackSentence="Conecte o Mercado Pago, o endereço de retirada e o WhatsApp de aviso de pedido."
+        />
+      ) : null}
+
+      <Suspense fallback={null}>
+        <PaymentProvidersCard />
+      </Suspense>
 
       <p className="rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-muted-foreground">
         Endereço de retirada e WhatsApp de aviso de pedido ficam em{' '}
         <Link href="/painel/regras" className="font-medium text-foreground underline">
           Regras
         </Link>
-        .
+        . O WhatsApp da loja abaixo é opcional.
       </p>
 
-      <Suspense fallback={null}>
-        <PaymentProvidersCard />
-      </Suspense>
+      <WhatsappConnectCard />
 
       <CheckoutBrandingCard />
 

@@ -61,6 +61,15 @@ export function PaymentProvidersCard() {
   }, [sessionReady, hasSession, refresh]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#mercadopago') return;
+    document.getElementById('mercadopago')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [sessionReady]);
+
+  useEffect(() => {
     const flag = searchParams.get('mp');
     if (flag === 'connected') {
       setNotice('Mercado Pago conectado com sucesso.');
@@ -114,7 +123,10 @@ export function PaymentProvidersCard() {
   const connected = connection?.connected === true;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+    <section
+      id="mercadopago"
+      className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]"
+    >
       <h2 className="text-base font-semibold text-foreground">
         Pagamentos e comissão
       </h2>

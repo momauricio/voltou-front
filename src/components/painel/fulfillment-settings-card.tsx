@@ -110,12 +110,19 @@ export const FulfillmentSettingsCard = forwardRef<
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.location.hash !== '#fulfillmentPickup') return;
-    document.getElementById('fulfillmentPickup')?.scrollIntoView({
+    const hash = window.location.hash;
+    const targetId =
+      hash === '#fulfillmentNotifyPhone'
+        ? 'fulfillmentNotifyPhone'
+        : hash === '#fulfillmentPickup'
+          ? 'fulfillmentPickup'
+          : null;
+    if (!targetId) return;
+    document.getElementById(targetId)?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
-    document.getElementById('fulfillmentPickup')?.focus();
+    document.getElementById(targetId)?.focus();
   }, [sessionReady]);
 
   const saveFulfillment = useCallback(async (): Promise<boolean> => {

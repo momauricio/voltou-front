@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
 import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
+import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
   cancelMerchantOrder,
@@ -126,6 +128,7 @@ export default function PedidosPage() {
   const [storePickupAddress, setStorePickupAddress] = useState<
     string | undefined
   >(undefined);
+  const { snapshot } = useOnboardingSnapshot();
 
   const reload = useCallback(
     async (tenantId: string, storeId: string, statusFilter: FulfillmentFilter) => {
@@ -316,6 +319,13 @@ export default function PedidosPage() {
         </div>
       )}
 
+      {!loading && orders.length === 0 && filter === 'todos' ? (
+        <OnboardingEmptyState
+          snapshot={snapshot}
+          fallbackSentence="Nenhum pedido pago ainda."
+        />
+      ) : (
+      <>
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
           const active = filter === f.id;
@@ -403,6 +413,8 @@ export default function PedidosPage() {
             </div>
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   );
