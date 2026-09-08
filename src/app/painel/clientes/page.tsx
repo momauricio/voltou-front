@@ -543,6 +543,7 @@ function ClientesPageInner() {
               required
             />
           </div>
+          {produtoOptions.length > 0 ? (
           <div>
             <label htmlFor="novoProduto" className="text-sm font-medium text-foreground">
               Produto de interesse
@@ -560,6 +561,7 @@ function ClientesPageInner() {
               ))}
             </select>
           </div>
+          ) : null}
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"

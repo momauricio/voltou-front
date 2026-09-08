@@ -194,6 +194,7 @@ describe('VOL-29 onboarding wiring (source)', () => {
 
   it('gates filters, funnel and PDF until the 1st client or 3/3', () => {
     assert.match(dashboard, /shouldShowFullDashboard/);
+    assert.match(dashboard, /onboardingLoading \|\| !snapshot/);
     assert.match(dashboard, /Exportar PDF/);
     assert.match(dashboard, /merchantVisibleFunnelSteps/);
     assert.equal(dashboard.includes('listCampaigns'), false);
@@ -232,6 +233,18 @@ describe('VOL-29 onboarding wiring (source)', () => {
   it('keeps store WhatsApp optional on Perfil and MP hash for step 3', () => {
     assert.match(perfil, /Opcional|WhatsappConnectCard/);
     assert.match(payment, /id="mercadopago"/);
+    assert.match(payment, /#mercadopago/);
+    assert.match(payment, /scrollIntoView/);
+    const fulfillment = readFileSync(
+      new URL('../components/painel/fulfillment-settings-card.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(fulfillment, /fulfillmentNotifyPhone/);
+    assert.match(fulfillment, /scrollIntoView/);
+    assert.ok(
+      perfil.indexOf('PaymentProvidersCard') < perfil.indexOf('WhatsappConnectCard'),
+      'Mercado Pago must appear before optional store WhatsApp on Perfil',
+    );
     assert.doesNotMatch(wizard, /orderNotifyPhoneE164.*whatsapp/i);
   });
 

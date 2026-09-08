@@ -61,6 +61,15 @@ export function PaymentProvidersCard() {
   }, [sessionReady, hasSession, refresh]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#mercadopago') return;
+    document.getElementById('mercadopago')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [sessionReady]);
+
+  useEffect(() => {
     const flag = searchParams.get('mp');
     if (flag === 'connected') {
       setNotice('Mercado Pago conectado com sucesso.');

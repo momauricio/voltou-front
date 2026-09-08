@@ -313,6 +313,8 @@ export default function RegrasPage() {
           fallbackSentence="Conecte o Mercado Pago, o endereço de retirada e o WhatsApp de aviso de pedido."
         />
       ) : null}
+      {snapshot?.next && snapshot.next.id !== 'loja-pronta' ? null : (
+      <>
       {updatedAt ? (
         <p className="text-xs text-muted-foreground">
           Atualizado em {formatDateTimePtBr(updatedAt)}
@@ -651,6 +653,8 @@ export default function RegrasPage() {
           </button>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

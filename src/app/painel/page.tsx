@@ -133,7 +133,11 @@ export default function PainelDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ownerFirstName, setOwnerFirstName] = useState('');
-  const { snapshot, loading: onboardingLoading } = useOnboardingSnapshot();
+  const {
+    snapshot,
+    loading: onboardingLoading,
+    error: onboardingError,
+  } = useOnboardingSnapshot();
   const showFull = snapshot ? shouldShowFullDashboard(snapshot) : false;
   const usingApi = metrics != null;
 
@@ -374,7 +378,14 @@ export default function PainelDashboardPage() {
     }
   }
 
-  if (onboardingLoading && !snapshot) {
+  if (onboardingLoading || !snapshot) {
+    if (onboardingError && !onboardingLoading) {
+      return (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {onboardingError}
+        </div>
+      );
+    }
     return (
       <div className="space-y-5 sm:space-y-8">
         <div
@@ -387,7 +398,7 @@ export default function PainelDashboardPage() {
     );
   }
 
-  if (snapshot && !showFull) {
+  if (!showFull) {
     return (
       <div className="space-y-5 sm:space-y-8">
         <OnboardingWizard

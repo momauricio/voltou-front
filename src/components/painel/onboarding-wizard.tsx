@@ -37,7 +37,7 @@ export function OnboardingWizard({
               : `Faltam ${remaining} passos para a loja ficar pronta`}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {ONBOARDING_HOME_SUBTITLE}
+            A 2ª venda a Voltou faz por você.
           </p>
           {nextStep && (
             <Link
