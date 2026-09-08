@@ -1,5 +1,9 @@
 import { assertLojistaCannotDispatch } from '@/lib/lojista-panel-policy';
 import {
+  buildOrderFulfillmentPatchBody,
+  buildOrderTrackingPatchBody,
+} from '@/lib/order-tracking';
+import {
   ApiHttpError,
   apiErrorFromBody,
   type ApiErrorBody,
@@ -872,23 +876,47 @@ export async function updateOrderFulfillment(payload: {
   checkoutId: string;
   tenantId: string;
   storeId: string;
-  status: 'ready' | 'shipped' | 'done';
-  trackingCode?: string;
+  status?: 'ready' | 'shipped' | 'done';
+  trackingCode?: string | null;
 }) {
-  return jsonFetch<{ id: string; fulfillmentStatus: string }>(
-    `/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({
+  return jsonFetch<{
+    id: string;
+    fulfillmentStatus?: string;
+    trackingCode?: string | null;
+  }>(`/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`, {
+    method: 'PATCH',
+    body: JSON.stringify(
+      buildOrderFulfillmentPatchBody({
         tenantId: payload.tenantId,
         storeId: payload.storeId,
         status: payload.status,
-        ...(payload.trackingCode != null
-          ? { trackingCode: payload.trackingCode }
-          : {}),
+        trackingCode: payload.trackingCode,
       }),
-    },
-  );
+    ),
+  });
+}
+
+/** Owner JWT + tenant/store scoped. Does not change fulfillment status. */
+export async function updateOrderTracking(payload: {
+  checkoutId: string;
+  tenantId: string;
+  storeId: string;
+  trackingCode: string | null;
+}) {
+  return jsonFetch<{
+    id: string;
+    fulfillmentStatus?: string;
+    trackingCode?: string | null;
+  }>(`/checkouts/${encodeURIComponent(payload.checkoutId)}/fulfillment`, {
+    method: 'PATCH',
+    body: JSON.stringify(
+      buildOrderTrackingPatchBody({
+        tenantId: payload.tenantId,
+        storeId: payload.storeId,
+        trackingCode: payload.trackingCode,
+      }),
+    ),
+  });
 }
 
 export async function cancelMerchantOrder(payload: {
