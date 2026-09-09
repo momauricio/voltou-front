@@ -1,138 +1,169 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import {
-  ONBOARDING_HOME_EYEBROW,
-  ONBOARDING_HOME_SUBTITLE,
-  ONBOARDING_HOME_TITLE,
+  ONBOARDING_MOTHER_LINE_1,
+  ONBOARDING_MOTHER_LINE_2,
+  ONBOARDING_CHECKLIST_LABEL,
+  LOJA_PRONTA_BANNER,
+  progressLabel,
   type OnboardingSnapshot,
+  type OnboardingStepView,
 } from '@/lib/lojista-onboarding';
+import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 
-type Props = {
-  snapshot: OnboardingSnapshot;
-  variant?: 'home' | 'compact';
-  ownerFirstName?: string;
-};
+const CTA_CLASS =
+  'inline-flex h-[54px] min-h-11 w-full items-center justify-center rounded-xl bg-[#0e9254] px-4 text-base font-semibold text-[#f6fbf6] transition hover:opacity-95';
 
-export function OnboardingWizard({
-  snapshot,
-  variant = 'home',
-  ownerFirstName,
-}: Props) {
-  if (snapshot.allDone) return null;
+const LOJA_PRONTA_DISMISS_KEY = 'voltou_loja_pronta_v2_dismissed';
 
-  const remaining = snapshot.steps.length - snapshot.completedCount;
-  const nextStep = snapshot.next;
+function StepRow({
+  step,
+  current,
+}: {
+  step: OnboardingStepView;
+  current: boolean;
+}) {
+  const rowClass = `flex min-h-11 items-center gap-3 px-3 py-3 text-sm ${
+    current ? 'font-bold text-[#111e15]' : step.done ? 'text-[#111e15]' : 'text-[#111e15]/70'
+  }`;
 
-  if (variant === 'compact') {
+  const mark = (
+    <span
+      className={`flex h-8 w-8 shrink-0 items-center justify-center text-base ${
+        step.done ? 'text-[#0e9254]' : current ? 'text-[#0e9254]' : 'text-[#111e15]/50'
+      }`}
+      aria-hidden
+    >
+      {step.done ? '✓' : '○'}
+    </span>
+  );
+
+  const chevron = (step.done || current) && (
+    <span className="shrink-0 text-lg leading-none text-[#111e15]/50" aria-hidden>
+      ›
+    </span>
+  );
+
+  const body = (
+    <>
+      {mark}
+      <span className="min-w-0 flex-1">{step.title}</span>
+      {chevron}
+    </>
+  );
+
+  if (step.done) {
     return (
-      <section className="overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[var(--shadow-soft)]">
-        <div className="px-3.5 py-3 sm:px-5 sm:py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-            {snapshot.completedCount} de {snapshot.steps.length} prontos
-          </p>
-          <h2 className="mt-0.5 text-base font-semibold tracking-tight text-foreground">
-            {remaining === 1
-              ? 'Último passo para a loja ficar pronta'
-              : `Faltam ${remaining} passos para a loja ficar pronta`}
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            A 2ª venda a Voltou faz por você.
-          </p>
-          {nextStep && (
-            <Link
-              href={nextStep.href}
-              className="mt-3 flex items-center gap-3 rounded-xl bg-primary px-3.5 py-3 text-primary-foreground transition hover:opacity-95"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight">
-                  {nextStep.cta}
-                </span>
-                <span className="mt-0.5 block text-xs text-primary-foreground/80">
-                  {nextStep.sentence}
-                </span>
-              </span>
-              <span className="shrink-0 text-lg leading-none" aria-hidden>
-                →
-              </span>
-            </Link>
-          )}
-        </div>
-      </section>
+      <Link
+        href={step.href}
+        className={`${rowClass} rounded-xl border border-[#111e15]`}
+      >
+        {body}
+      </Link>
     );
   }
 
+  if (current) {
+    return (
+      <div className="rounded-xl border border-[#0e9254] bg-[#f6fbf6]">
+        <Link href={step.href} className={rowClass}>
+          {body}
+        </Link>
+        <div className="px-3 pb-3">
+          <Link href={step.href} className={CTA_CLASS}>
+            {step.cta}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className={`${rowClass} rounded-xl`}>{body}</div>;
+}
+
+export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot }) {
+  if (snapshot.allDone) return null;
+
+  const nextStep = snapshot.next;
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[var(--shadow-soft)] ring-1 ring-primary/10">
-      <div className="border-b border-border/70 px-3.5 py-4 sm:px-5 sm:py-5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-          {ONBOARDING_HOME_EYEBROW}
+    <section className="mx-auto w-full max-w-[390px] pb-28 text-[#111e15] lg:max-w-lg">
+      <h1 className="text-[1.35rem] font-semibold leading-snug tracking-tight">
+        <span className="block">{ONBOARDING_MOTHER_LINE_1}</span>
+        <span className="block">{ONBOARDING_MOTHER_LINE_2}</span>
+      </h1>
+
+      <div className="sticky top-14 z-30 mt-5 bg-[#f6fbf6]/95 py-3 backdrop-blur-md lg:top-0">
+        <p className="text-sm font-medium text-[#111e15]">
+          <span className="text-3xl font-semibold leading-none text-[#0e9254]">
+            {snapshot.completedCount}
+          </span>{' '}
+          {progressLabel(snapshot).replace(/^\d+\s/, '')}
         </p>
-        <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-          {ownerFirstName
-            ? `${ownerFirstName}, ${ONBOARDING_HOME_TITLE.toLowerCase()}`
-            : ONBOARDING_HOME_TITLE}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {ONBOARDING_HOME_SUBTITLE}
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {snapshot.completedCount} de {snapshot.steps.length} concluídos
+        <p className="mt-2 text-sm font-medium text-[#111e15]">
+          {ONBOARDING_CHECKLIST_LABEL}
         </p>
       </div>
 
-      <ol className="space-y-1 px-2 py-3 sm:px-3 sm:py-4">
-        {snapshot.steps.map((step, idx) => {
-          const isNext = nextStep?.id === step.id;
-          return (
-            <li key={step.id}>
-              <Link
-                href={step.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
-                  isNext
-                    ? 'bg-primary text-primary-foreground'
-                    : step.done
-                      ? 'text-muted-foreground'
-                      : 'text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
-                    step.done
-                      ? 'bg-success/15 text-success'
-                      : isNext
-                        ? 'bg-primary-foreground/15 text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {step.done ? '✓' : idx + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block font-semibold leading-tight ${
-                      step.done ? 'line-through decoration-border' : ''
-                    }`}
-                  >
-                    {isNext ? step.cta : step.title}
-                  </span>
-                  <span
-                    className={`mt-0.5 block text-xs ${
-                      isNext ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {step.sentence}
-                  </span>
-                </span>
-                {!step.done && (
-                  <span className="shrink-0 text-lg leading-none" aria-hidden>
-                    →
-                  </span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
+      <ol className="mt-2 space-y-2">
+        {snapshot.steps.map((step) => (
+          <li key={step.id}>
+            <StepRow step={step} current={nextStep?.id === step.id} />
+          </li>
+        ))}
       </ol>
+
+      {nextStep ? (
+        <div className="mt-5">
+          <OnboardingEmptyState
+            snapshot={snapshot}
+            stepId={nextStep.id}
+            hideCta
+          />
+        </div>
+      ) : null}
+
+      {nextStep ? (
+        <div
+          className="fixed inset-x-4 z-40"
+          style={{
+            bottom: 'calc(var(--painel-pad-bottom, 0px) + 16px)',
+          }}
+        >
+          <Link href={nextStep.href} className={CTA_CLASS}>
+            {nextStep.cta}
+          </Link>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+export function LojaProntaBanner() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(window.localStorage.getItem(LOJA_PRONTA_DISMISS_KEY) !== '1');
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-[#0e9254] bg-[#f6fbf6] px-3 py-2 text-sm font-semibold text-[#111e15]">
+      <p>{LOJA_PRONTA_BANNER}</p>
+      <button
+        type="button"
+        onClick={() => {
+          window.localStorage.setItem(LOJA_PRONTA_DISMISS_KEY, '1');
+          setVisible(false);
+        }}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[#111e15]"
+        aria-label="Dispensar"
+      >
+        ×
+      </button>
+    </div>
   );
 }

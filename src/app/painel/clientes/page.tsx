@@ -6,6 +6,7 @@ import { FormEvent, Suspense, useEffect, useMemo, useReducer, useRef, useState }
 import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
 import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
+import { CLIENTE_CTA, CLIENTE_SENTENCE } from '@/lib/lojista-onboarding';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
@@ -314,7 +315,7 @@ function ClientesPageInner() {
         title="Clientes"
         subtitle={
           listEmpty
-            ? 'Cadastre o 1º cliente para a Voltou cuidar da 2ª venda.'
+            ? CLIENTE_SENTENCE
             : `${clientes.length} cadastrados · ${filtrados.length} exibidos`
         }
         actions={
@@ -363,14 +364,11 @@ function ClientesPageInner() {
       {listEmpty ? (
         <OnboardingEmptyState
           snapshot={snapshot}
-          fallbackSentence="Nenhum cliente na loja ainda."
-          fallbackCta="Cadastrar 1º cliente"
+          stepId="primeiro-cliente"
+          fallbackSentence={CLIENTE_SENTENCE}
+          fallbackCta={CLIENTE_CTA}
           onFallbackCta={() => setModalOpen(true)}
-          onCtaClick={
-            snapshot?.next?.id === 'primeiro-cliente'
-              ? () => setModalOpen(true)
-              : undefined
-          }
+          onCtaClick={() => setModalOpen(true)}
         />
       ) : loading ? null : (
       <>

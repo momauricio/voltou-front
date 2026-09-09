@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { KpiCard } from '@/components/painel/kpi-card';
-import { OnboardingWizard } from '@/components/painel/onboarding-wizard';
+import {
+  LojaProntaBanner,
+  OnboardingWizard,
+} from '@/components/painel/onboarding-wizard';
 import { PageHeader } from '@/components/painel/page-header';
 import { PickupAddressNudge } from '@/components/painel/pickup-address-nudge';
 import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
@@ -401,21 +404,15 @@ export default function PainelDashboardPage() {
   if (!showFull) {
     return (
       <div className="space-y-5 sm:space-y-8">
-        <OnboardingWizard
-          snapshot={snapshot}
-          variant="home"
-          ownerFirstName={ownerFirstName}
-        />
+        <OnboardingWizard snapshot={snapshot} />
       </div>
     );
   }
 
   return (
     <div className="space-y-5 sm:space-y-8">
+      <LojaProntaBanner />
       <PickupAddressNudge />
-      {snapshot && !snapshot.allDone ? (
-        <OnboardingWizard snapshot={snapshot} variant="compact" />
-      ) : null}
       <PageHeader
         title={ownerFirstName ? `Olá, ${ownerFirstName}` : 'Dashboard'}
         subtitle="Acompanhe o que está voltando — a 2ª venda a Voltou faz por você."

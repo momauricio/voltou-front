@@ -100,8 +100,11 @@ if (!onboardingHelper.includes("'primeiro-cliente'")) {
 if (!onboardingHelper.includes("'primeiro-produto'")) {
   throw new Error('Onboarding must include cadastrar 1 produto');
 }
-if (!onboardingHelper.includes("'loja-pronta'")) {
+if (!onboardingHelper.includes("'mercado-pago'") || !onboardingHelper.includes("'retirada'")) {
   throw new Error('Onboarding must include Mercado Pago + retirada + aviso');
+}
+if (!onboardingHelper.includes("'regras'")) {
+  throw new Error('Onboarding must include regras / teto de desconto');
 }
 if (onboarding.includes("id: 'whatsapp'") || onboardingHelper.includes('listWhatsappConnections')) {
   throw new Error('Store WhatsApp must stay optional on Perfil, not a checklist step');
