@@ -95,7 +95,7 @@ export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot })
         <span className="block">{ONBOARDING_MOTHER_LINE_2}</span>
       </h1>
 
-      <div className="sticky top-14 z-30 mt-5 bg-[#f6fbf6]/95 py-3 backdrop-blur-md lg:top-0">
+      <div className="sticky top-14 z-30 mt-5 bg-[#f6fbf6] py-3 lg:top-0">
         <p className="text-sm font-medium text-[#111e15]">
           <span className="text-3xl font-semibold leading-none text-[#0e9254]">
             {snapshot.completedCount}

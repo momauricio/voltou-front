@@ -392,6 +392,42 @@ describe('onboarding v2 wiring (source)', () => {
     assert.match(pedidos, /OnboardingEmptyState|onboardingEmptyState/);
   });
 
+  it('keeps onboarding setup solid cream — no glass, blur, glow or second accent', () => {
+    for (const [name, src] of [
+      ['wizard', wizard],
+      ['empty-state', emptyState],
+    ] as const) {
+      assert.equal(
+        /backdrop-blur/.test(src),
+        false,
+        `${name} must not use backdrop-blur (reads as glass)`,
+      );
+      assert.equal(
+        /#f6fbf6\]\//.test(src),
+        false,
+        `${name} cream must be solid #f6fbf6, not translucent`,
+      );
+      assert.equal(/glass/i.test(src), false, `${name} must not use glass`);
+      assert.equal(
+        /\b(indigo|violet|purple|fuchsia)\b/i.test(src),
+        false,
+        `${name} must not use a second accent`,
+      );
+      assert.equal(
+        /glow|shadow-\[0/i.test(src),
+        false,
+        `${name} must not use glow`,
+      );
+      assert.match(src, /#0e9254/, `${name} keeps the green accent`);
+      assert.match(src, /#f6fbf6/, `${name} keeps cream`);
+      assert.match(src, /#111e15/, `${name} keeps text`);
+    }
+    assert.match(wizard, /sticky[^"']*bg-\[#f6fbf6\]/);
+    assert.doesNotMatch(wizard, /sticky[^"']*backdrop-blur/);
+    assert.match(wizard, /LOJA_PRONTA_BANNER/);
+    assert.match(wizard, /bg-\[#f6fbf6\]/);
+  });
+
   it('uses didactic 2ª-venda copy without puxar, Instagram, VIP or campaign queue', () => {
     for (const [name, src] of [
       ['helper', helper],
