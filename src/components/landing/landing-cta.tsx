@@ -1,6 +1,7 @@
 'use client';
 
 import { useInView } from '@/components/landing/use-in-view';
+import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo';
 
 export function LandingCta() {
   const { ref, inView } = useInView<HTMLElement>();
@@ -22,10 +23,10 @@ export function LandingCta() {
         </h2>
         <div className="relative mt-8 flex justify-center">
           <a
-            href="/entrar"
+            href={HOME_CTA_HREF}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
-            Criar conta e cadastrar o 1º cliente
+            {HOME_CTA_LABEL}
             <span aria-hidden>→</span>
           </a>
         </div>
