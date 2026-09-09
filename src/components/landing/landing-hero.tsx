@@ -1,6 +1,6 @@
 'use client';
 
-import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo';
+import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
 
 /**
  * Hero — 2ª venda a Voltou faz + CTA único + comissão em destaque.

@@ -1,75 +1,55 @@
 /**
  * Technical SEO/GEO for the public site.
- * Home title, description and entity copy are Marketing-locked.
- * Do not invent slogans, FAQ answers, or route-level marketing meta here.
+ * Home title, description and entity copy are Marketing-locked in seo-copy.ts.
  */
 
-export const SITE_NAME = 'Voltou';
-export const SITE_URL = 'https://www.voltouapp.com';
+import {
+  HOME_DESCRIPTION,
+  HOME_OFFER_TERMS,
+  HOME_TITLE,
+  HOME_TITLE_OG,
+  SITE_NAME,
+  SITE_URL,
+} from './seo-copy.ts';
 
-export const HOME_H1_LINE_1 = 'A 1ª venda você fez no balcão.';
-export const HOME_H1_LINE_2 = 'A 2ª venda a Voltou faz por você.';
-
-export const HOME_TITLE =
-  'A 1ª venda você fez no balcão. A 2ª venda a Voltou faz por você. | Voltou';
-
-/** OG/Twitter title may drop the trailing "| Voltou" — siteName already carries it. */
-export const HOME_TITLE_OG =
-  'A 1ª venda você fez no balcão. A 2ª venda a Voltou faz por você.';
-
-export const HOME_DESCRIPTION =
-  'A Voltou fecha a 2ª venda da sua loja física de roupa e calçado. Você cadastra nome e número no balcão. Sem mensalidade. Comissão só na venda extra.';
-
-export const HOME_OFFER_SUB =
-  'A Voltou fecha a venda e te dá lucro. O cliente da sua loja, atendimento requintado.';
-
-export const HOME_OFFER_TERMS =
-  'Sem mensalidade. Sem cartão. Comissão só na venda extra.';
-
-export const HOME_CTA_LABEL = 'Criar conta e cadastrar o 1º cliente';
-export const HOME_CTA_HREF = '/entrar?tab=criar';
-
-/** Primary themes + entity. Secondary phrases stay in page copy, not stuffed here. */
-export const HOME_KEYWORDS = [
-  '2ª venda loja física',
-  'segunda venda balcão',
-  'recuperar venda loja de roupa',
-  'loja de calçado segunda venda',
-  'Voltou',
-  'voltouapp.com',
-];
-
-/** Forbidden in title / meta / H1 / OG / Twitter / JSON-LD (Marketing lock). */
-export const FORBIDDEN_HOME_SEO = [
-  /puxa|puxar/i,
-  /trata VIP/i,
-  /5%/,
-  /robô/i,
-  /disparo/i,
-  /WhatsApp da loja/i,
-  /não aconteceria sozinha/i,
-] as const;
+export {
+  FORBIDDEN_HOME_SEO,
+  HOME_CTA_HREF,
+  HOME_CTA_LABEL,
+  HOME_DESCRIPTION,
+  HOME_H1_LINE_1,
+  HOME_H1_LINE_2,
+  HOME_OFFER_SUB,
+  HOME_OFFER_TERMS,
+  HOME_TITLE,
+  HOME_TITLE_OG,
+  SITE_NAME,
+  SITE_URL,
+} from './seo-copy.ts';
 
 export const NO_INDEX_ROBOTS = { index: false, follow: false } as const;
 
+/**
+ * Prefix paths without a trailing slash so `/painel` matches `/painel` and
+ * `/painel/foo`. Keep `/p/` slashed so it does not prefix-match `/painel`.
+ */
 const ROBOTS_DISALLOW = [
-  '/painel/',
-  '/equipe/',
-  '/api/',
+  '/painel',
+  '/equipe',
+  '/api',
   '/entrar',
   '/esqueci-senha',
   '/redefinir-senha',
   '/verificar-email',
-  '/loja/',
-  '/obrigado/',
-  '/aguardando/',
+  '/loja',
+  '/obrigado',
+  '/aguardando',
   '/p/',
 ] as const;
 
 export const HOME_METADATA = {
   title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
-  keywords: HOME_KEYWORDS,
   alternates: {
     canonical: '/',
   },

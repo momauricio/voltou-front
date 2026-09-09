@@ -55,6 +55,7 @@ describe('homepage hero copy', () => {
   it('locks the hero CTA to /entrar', () => {
     assert.match(hero, /HOME_CTA_LABEL/);
     assert.match(hero, /HOME_CTA_HREF/);
+    assert.match(hero, /from '@\/lib\/seo-copy'/);
   });
 });
 

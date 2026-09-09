@@ -1,7 +1,7 @@
 'use client';
 
 import { useInView } from '@/components/landing/use-in-view';
-import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo';
+import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
 
 export function LandingCta() {
   const { ref, inView } = useInView<HTMLElement>();

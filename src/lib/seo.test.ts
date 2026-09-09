@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   FORBIDDEN_HOME_SEO,
   HOME_CTA_HREF,
+  HOME_CTA_LABEL,
   HOME_DESCRIPTION,
   HOME_H1_LINE_1,
   HOME_H1_LINE_2,
@@ -38,6 +39,16 @@ const equipeLayout = readFileSync(
 );
 const robotsRoute = readFileSync(new URL('../app/robots.ts', import.meta.url), 'utf8');
 const sitemapRoute = readFileSync(new URL('../app/sitemap.ts', import.meta.url), 'utf8');
+const entrarPage = readFileSync(new URL('../app/entrar/page.tsx', import.meta.url), 'utf8');
+const hiddenLayouts = [
+  '../app/loja/layout.tsx',
+  '../app/obrigado/layout.tsx',
+  '../app/aguardando/layout.tsx',
+  '../app/p/layout.tsx',
+  '../app/esqueci-senha/layout.tsx',
+  '../app/redefinir-senha/layout.tsx',
+  '../app/verificar-email/layout.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8'));
 
 function seoSurfaceText(): string {
   return [
@@ -75,6 +86,7 @@ describe('locked home SEO copy', () => {
     assert.equal(HOME_H1_LINE_1, 'A 1ª venda você fez no balcão.');
     assert.equal(HOME_H1_LINE_2, 'A 2ª venda a Voltou faz por você.');
     assert.equal(HOME_CTA_HREF, '/entrar?tab=criar');
+    assert.equal(HOME_CTA_LABEL, 'Criar conta e cadastrar o 1º cliente');
     assert.match(hero, /A 1ª venda você fez no balcão/);
     assert.match(hero, /A 2ª venda a Voltou faz por você/);
     assert.match(hero, /HOME_CTA_HREF/);
@@ -106,6 +118,7 @@ describe('home metadata wiring', () => {
     assert.equal(HOME_METADATA.twitter?.title, HOME_TITLE_OG);
     assert.equal(HOME_METADATA.twitter?.description, HOME_DESCRIPTION);
     assert.equal(HOME_METADATA.robots, undefined);
+    assert.equal('keywords' in HOME_METADATA, false);
   });
 
   it('does not pin a global canonical of / on the root layout', () => {
@@ -153,20 +166,21 @@ describe('robots, sitemap and noindex', () => {
     const disallow = robots.rules.disallow;
     assert.ok(Array.isArray(disallow));
     for (const path of [
-      '/painel/',
-      '/equipe/',
-      '/api/',
+      '/painel',
+      '/equipe',
+      '/api',
       '/entrar',
       '/esqueci-senha',
       '/redefinir-senha',
       '/verificar-email',
-      '/loja/',
-      '/obrigado/',
-      '/aguardando/',
+      '/loja',
+      '/obrigado',
+      '/aguardando',
       '/p/',
     ]) {
       assert.ok(disallow.includes(path), `robots must disallow ${path}`);
     }
+    assert.ok(!disallow.includes('/p'), '/p would prefix-match /painel');
     assert.match(robotsRoute, /siteRobots/);
   });
 
@@ -175,5 +189,9 @@ describe('robots, sitemap and noindex', () => {
     assert.deepEqual(hidden.robots, { index: false, follow: false });
     assert.match(painelLayout, /noIndexMetadata/);
     assert.match(equipeLayout, /noIndexMetadata/);
+    assert.match(entrarPage, /noIndexMetadata/);
+    for (const source of hiddenLayouts) {
+      assert.match(source, /noIndexMetadata/);
+    }
   });
 });
