@@ -1,5 +1,7 @@
 'use client';
 
+import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
+
 /**
  * Hero — 2ª venda a Voltou faz + CTA único + comissão em destaque.
  */
@@ -43,10 +45,10 @@ export function LandingHero() {
 
           <div className="landing-reveal landing-reveal-delay-1 mt-8 flex flex-col items-center">
             <a
-              href="/entrar"
+              href={HOME_CTA_HREF}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
             >
-              Criar conta e cadastrar o 1º cliente
+              {HOME_CTA_LABEL}
               <span aria-hidden>→</span>
             </a>
           </div>

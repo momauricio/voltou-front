@@ -1,9 +1,13 @@
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
   PainelMobileChrome,
   PainelSidebar,
 } from '@/components/painel/painel-nav';
 import { RedirectStaffFromPainel } from '@/components/painel/redirect-staff';
+import { noIndexMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = noIndexMetadata();
 
 export default function PainelLayout({ children }: { children: ReactNode }) {
   return (

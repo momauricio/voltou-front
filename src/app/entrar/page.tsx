@@ -1,5 +1,9 @@
+import type { Metadata } from 'next';
 import { BrandLogo } from '@/components/brand-logo';
 import { AuthForm } from '@/components/auth/auth-form';
+import { noIndexMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = noIndexMetadata('Entrar');
 
 type PageProps = {
   searchParams?: Promise<{ tab?: string }>;

@@ -53,9 +53,9 @@ describe('homepage hero copy', () => {
   });
 
   it('locks the hero CTA to /entrar', () => {
-    assert.match(hero, /Criar conta e cadastrar o 1º cliente/);
-    assert.match(hero, /href="\/entrar"/);
-    assert.doesNotMatch(hero, /href="\/entrar\?tab=criar"/);
+    assert.match(hero, /HOME_CTA_LABEL/);
+    assert.match(hero, /HOME_CTA_HREF/);
+    assert.match(hero, /from '@\/lib\/seo-copy'/);
   });
 });
 

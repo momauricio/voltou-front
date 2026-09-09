@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { LandingAngles } from '@/components/landing/landing-angles';
 import { LandingCta } from '@/components/landing/landing-cta';
 import { LandingFaq } from '@/components/landing/landing-faq';
@@ -7,10 +8,19 @@ import { LandingMechanism } from '@/components/landing/landing-mechanism';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingPricing } from '@/components/landing/landing-pricing';
 import { LandingWhatsappMock } from '@/components/landing/landing-whatsapp-mock';
+import { HOME_JSON_LD, HOME_METADATA } from '@/lib/seo';
+
+export const metadata: Metadata = HOME_METADATA;
 
 export default function Home() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(HOME_JSON_LD).replace(/</g, '\\u003c'),
+        }}
+      />
       <LandingNav />
       <main>
         <LandingHero />
