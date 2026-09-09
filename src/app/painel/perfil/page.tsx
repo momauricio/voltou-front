@@ -77,10 +77,11 @@ export default function PerfilPage() {
         subtitle="Gerencie WhatsApp, pagamentos, aparência do checkout e a segurança do acesso."
       />
 
-      {snapshot?.next?.id === 'loja-pronta' ? (
+      {snapshot && !snapshot.steps.find((s) => s.id === 'mercado-pago')?.done ? (
         <OnboardingEmptyState
           snapshot={snapshot}
-          fallbackSentence="Conecte o Mercado Pago, o endereço de retirada e o WhatsApp de aviso de pedido."
+          stepId="mercado-pago"
+          fallbackSentence="Conecte o Mercado Pago pra receber quando a venda fechar."
         />
       ) : null}
 

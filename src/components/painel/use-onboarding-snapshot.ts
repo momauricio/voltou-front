@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   getFulfillmentSettings,
   getMercadoPagoConnection,
+  getStoreRules,
   listApiCustomers,
   listApiProducts,
   resolveTenantContext,
@@ -31,7 +32,7 @@ export function useOnboardingSnapshot() {
     }
 
     try {
-      const [customers, products, mp, fulfillment] = await Promise.all([
+      const [customers, products, mp, fulfillment, storeRules] = await Promise.all([
         listApiCustomers(ctx.tenantId, ctx.storeId).catch(() => []),
         listApiProducts(ctx.tenantId, ctx.storeId).catch(() => []),
         getMercadoPagoConnection(ctx.tenantId, ctx.storeId).catch(() => ({
@@ -41,12 +42,22 @@ export function useOnboardingSnapshot() {
           pickupAddressText: null,
           orderNotifyPhoneE164: null,
         })),
+        getStoreRules(ctx.tenantId, ctx.storeId).catch(() => ({
+          rules: null,
+          updatedAt: null,
+        })),
       ]);
 
+      const rules = storeRules.rules;
       setSnapshot(
         evaluateOnboarding({
           customerCount: customers.length,
           productCount: products.length,
+          rulesUpdatedAt: storeRules.updatedAt,
+          descontoPadrao: rules?.descontoPadrao,
+          margemMaxima: rules?.margemMaxima,
+          maxDescontoUmProduto: rules?.maxDescontoUmProduto,
+          maxDescontoDoisOuMais: rules?.maxDescontoDoisOuMais,
           mercadoPagoConnected: Boolean(mp.connected),
           pickupAddressText: fulfillment.pickupAddressText,
           orderNotifyPhoneE164: fulfillment.orderNotifyPhoneE164,

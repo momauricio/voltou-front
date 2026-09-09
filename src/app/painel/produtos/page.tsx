@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { OnboardingEmptyState } from '@/components/painel/onboarding-empty-state';
 import { PageHeader } from '@/components/painel/page-header';
 import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
+import { PRODUTO_CTA, PRODUTO_SENTENCE } from '@/lib/lojista-onboarding';
 import { Modal } from '@/components/painel/modal';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
@@ -460,7 +461,7 @@ function ProdutosPageInner() {
         title="Produtos"
         subtitle={
           listEmpty
-            ? 'Cadastre 1 produto para a Voltou saber o que oferecer.'
+            ? PRODUTO_SENTENCE
             : `${produtos.length} cadastrados · ${filtrados.length} exibidos`
         }
         actions={
@@ -515,14 +516,11 @@ function ProdutosPageInner() {
       {listEmpty ? (
         <OnboardingEmptyState
           snapshot={snapshot}
-          fallbackSentence="Nenhum produto na loja ainda."
-          fallbackCta="Cadastrar 1 produto"
+          stepId="primeiro-produto"
+          fallbackSentence={PRODUTO_SENTENCE}
+          fallbackCta={PRODUTO_CTA}
           onFallbackCta={openNovoProduto}
-          onCtaClick={
-            snapshot?.next?.id === 'primeiro-produto'
-              ? openNovoProduto
-              : undefined
-          }
+          onCtaClick={openNovoProduto}
         />
       ) : loading ? null : (
       <>

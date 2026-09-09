@@ -19,6 +19,7 @@ import {
   formatDateTimePtBr,
   formatMerchantVisibleDate,
 } from '@/lib/lojista-panel-ux';
+import { REGRAS_SENTENCE } from '@/lib/lojista-onboarding';
 
 const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
@@ -161,6 +162,17 @@ export default function RegrasPage() {
   const canSave = loadState === 'ready' && Boolean(tenantCtx);
   const fulfillmentRef = useRef<FulfillmentSettingsCardHandle>(null);
   const { snapshot, reload: reloadOnboarding } = useOnboardingSnapshot();
+  const regrasDone = snapshot?.steps.find((s) => s.id === 'regras')?.done ?? false;
+  const setupIncomplete = snapshot ? !snapshot.allDone : true;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#regras-teto') return;
+    document.getElementById('regras-teto')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [loadState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -276,12 +288,15 @@ export default function RegrasPage() {
     setSaving(true);
     setErro(null);
     try {
-      const fulfillmentOk = await fulfillmentRef.current?.save();
-      if (!fulfillmentOk) {
-        setErro(
-          'Confira entrega e pedidos. O endereço de retirada é obrigatório para retirada na loja.',
-        );
-        return;
+      const skipFulfillment = setupIncomplete && !regrasDone;
+      if (!skipFulfillment) {
+        const fulfillmentOk = await fulfillmentRef.current?.save();
+        if (!fulfillmentOk) {
+          setErro(
+            'Confira entrega e pedidos. O endereço de retirada é obrigatório para retirada na loja.',
+          );
+          return;
+        }
       }
       const saved = await saveStoreRules(tenantCtx.tenantId, tenantCtx.storeId, payload);
       setUpdatedAt(saved.updatedAt);
@@ -305,15 +320,31 @@ export default function RegrasPage() {
     <div className="space-y-6 pb-16">
       <PageHeader
         title="Regras"
-        subtitle="Configure entrega, avisos de pedido e como a Voltou conversa com seus clientes."
+        subtitle={
+          setupIncomplete && !regrasDone
+            ? REGRAS_SENTENCE
+            : 'Configure entrega, avisos de pedido e como a Voltou conversa com seus clientes.'
+        }
       />
-      {snapshot?.next ? (
+      {snapshot && !regrasDone ? (
         <OnboardingEmptyState
           snapshot={snapshot}
-          fallbackSentence="Conecte o Mercado Pago, o endereço de retirada e o WhatsApp de aviso de pedido."
+          stepId="regras"
+          fallbackSentence={REGRAS_SENTENCE}
+          onCtaClick={() =>
+            document.getElementById('regras-teto')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            })
+          }
         />
       ) : null}
-      {snapshot?.next && snapshot.next.id !== 'loja-pronta' ? null : (
+      {snapshot && regrasDone && snapshot.next?.id === 'retirada' ? (
+        <OnboardingEmptyState
+          snapshot={snapshot}
+          stepId="retirada"
+        />
+      ) : null}
       <>
       {updatedAt ? (
         <p className="text-xs text-muted-foreground">
@@ -329,10 +360,10 @@ export default function RegrasPage() {
         </div>
       )}
 
-      <PickupAddressNudge />
+      {!setupIncomplete ? <PickupAddressNudge /> : null}
 
-      <FulfillmentSettingsCard ref={fulfillmentRef} />
-
+      {!setupIncomplete ? (
+      <>
       <Section
         title="Sobre o negócio"
         description="Ajuda a Voltou a vender no tom da sua loja ao responder clientes."
@@ -413,12 +444,16 @@ export default function RegrasPage() {
           })}
         </div>
       </Section>
+      </>
+      ) : null}
 
+      <div id="regras-teto">
       <Section
         title="Ofertas de recuperação"
         description="Regras de follow-up e descontos nas ofertas de recuperação."
       >
         <div className="grid gap-4 sm:grid-cols-2">
+          {!setupIncomplete ? (
           <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
             Follow-up após a compra
             <select
@@ -431,6 +466,7 @@ export default function RegrasPage() {
               <option value="90">90 dias</option>
             </select>
           </label>
+          ) : null}
 
           <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
             Desconto padrão oferecido
@@ -505,6 +541,7 @@ export default function RegrasPage() {
             teto de 2+ vale para cada item.
           </p>
 
+          {!setupIncomplete ? (
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5">
             <div>
               <p className="text-sm font-medium text-foreground">Mensagem de aniversário</p>
@@ -528,9 +565,16 @@ export default function RegrasPage() {
               />
             </button>
           </div>
+          ) : null}
         </div>
       </Section>
+      </div>
 
+      {regrasDone || !setupIncomplete ? (
+        <FulfillmentSettingsCard ref={fulfillmentRef} />
+      ) : null}
+
+      {!setupIncomplete ? (
       <Section
         title="Cupons"
         description="Códigos com desconto máximo em porcentagem. A Voltou não passa do teto da loja."
@@ -629,6 +673,7 @@ export default function RegrasPage() {
           </button>
         )}
       </Section>
+      ) : null}
 
       <div className="sticky bottom-4 z-10 flex flex-col items-end gap-2">
         {erro && (
@@ -647,14 +692,17 @@ export default function RegrasPage() {
             type="button"
             disabled={saving || !canSave}
             onClick={() => void handleSalvar()}
-            className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95 disabled:opacity-60"
+            className={
+              setupIncomplete
+                ? 'inline-flex h-[54px] min-h-11 w-full items-center justify-center rounded-xl bg-[#0e9254] px-4 text-base font-semibold text-[#f6fbf6] transition hover:opacity-95 disabled:opacity-60'
+                : 'inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95 disabled:opacity-60'
+            }
           >
             {saving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       </div>
       </>
-      )}
     </div>
   );
 }
