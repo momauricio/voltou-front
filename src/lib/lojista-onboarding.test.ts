@@ -392,6 +392,59 @@ describe('onboarding v2 wiring (source)', () => {
     assert.match(pedidos, /OnboardingEmptyState|onboardingEmptyState/);
   });
 
+  it('renders exactly one sticky footer CTA and no in-card green button', () => {
+    assert.match(
+      wizard,
+      /className="fixed inset-x-4 z-40"/,
+      'primary CTA must stay in the sticky/fixed footer above the bottom nav',
+    );
+    assert.match(wizard, /\{nextStep\.cta\}/);
+    assert.match(
+      wizard,
+      /hideCta/,
+      'empty-state card must hide its own CTA so the footer stays unique',
+    );
+
+    assert.equal(
+      /\{step\.cta\}/.test(wizard),
+      false,
+      'current StepRow must not embed an in-card CTA (duplicate «Cadastrar retirada»)',
+    );
+
+    const primaryCtaLabels = wizard.match(/\{(?:step|nextStep)\.cta\}/g) ?? [];
+    assert.equal(
+      primaryCtaLabels.length,
+      1,
+      `wizard must render exactly one primary CTA label, got ${primaryCtaLabels.join(', ')}`,
+    );
+
+    const greenCtaButtons = wizard.match(/className=\{CTA_CLASS\}/g) ?? [];
+    assert.equal(
+      greenCtaButtons.length,
+      1,
+      'exactly one green CTA_CLASS button — sticky footer only, never stacked with the step card',
+    );
+
+    const currentCard = wizard.match(
+      /if \(current\) \{[\s\S]*?return \([\s\S]*?\);\s*\}/,
+    )?.[0] ?? '';
+    assert.match(
+      currentCard,
+      /border-\[#0e9254\]/,
+      'current step card keeps the green highlight',
+    );
+    assert.equal(
+      /CTA_CLASS/.test(currentCard),
+      false,
+      'current step card must not render a green CTA button',
+    );
+    assert.equal(
+      /\{step\.cta\}/.test(currentCard),
+      false,
+      'current step card must not show the step CTA copy',
+    );
+  });
+
   it('keeps onboarding setup solid cream — no glass, blur, glow or second accent', () => {
     for (const [name, src] of [
       ['wizard', wizard],
