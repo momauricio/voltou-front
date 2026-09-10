@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { ApiHttpError } from './api-error.ts';
 import {
+  asMerchantOrderList,
   lojistaApiLoadError,
   lojistaDemoBannerVisible,
+  lojistaPedidosListError,
   merchantVisibleFunnelSteps,
 } from './lojista-panel-ux.ts';
 
@@ -29,6 +32,14 @@ const fulfillment = readFileSync(
 );
 const nav = readFileSync(
   new URL('../components/painel/painel-nav.tsx', import.meta.url),
+  'utf8',
+);
+const pedidos = readFileSync(
+  new URL('../app/painel/pedidos/page.tsx', import.meta.url),
+  'utf8',
+);
+const apiClient = readFileSync(
+  new URL('./api.ts', import.meta.url),
   'utf8',
 );
 const policy = readFileSync(
@@ -201,5 +212,56 @@ describe('Regras has a single Salvar and pickup stays required', () => {
     assert.match(fulfillment, /Informe o endereço de retirada|pickupAddressText/);
     assert.equal(fulfillment.includes('+55'), false);
     assert.match(fulfillment, /required/);
+  });
+});
+
+describe('Pedidos never shows Internal server error to the lojista', () => {
+  it('hides Nest/5xx list failures so the empty state can render', () => {
+    assert.equal(
+      lojistaPedidosListError(new ApiHttpError('Internal server error', 500)),
+      null,
+    );
+    assert.equal(
+      lojistaPedidosListError(new Error('Internal server error')),
+      null,
+    );
+    assert.equal(
+      lojistaPedidosListError(new ApiHttpError('Erro HTTP 502', 502)),
+      null,
+    );
+  });
+
+  it('keeps session copy and a soft fallback that never leaks Internal server error', () => {
+    assert.equal(
+      lojistaPedidosListError(new Error('Sessão expirada. Faça login novamente.')),
+      'Sessão expirada. Faça login novamente.',
+    );
+    const soft = lojistaPedidosListError(new Error('tenantId e storeId são obrigatórios.'));
+    assert.match(soft ?? '', /n[aã]o foi poss[ií]vel carregar os pedidos/i);
+    assert.equal(/internal server error/i.test(soft ?? ''), false);
+    assert.equal(
+      /internal server error/i.test(lojistaApiLoadError('Internal server error')),
+      false,
+    );
+  });
+
+  it('treats a non-array orders payload as zero pedidos', () => {
+    assert.deepEqual(asMerchantOrderList([]), []);
+    assert.deepEqual(asMerchantOrderList({ orders: [] }), []);
+    assert.deepEqual(asMerchantOrderList(null), []);
+    assert.deepEqual(asMerchantOrderList([{ id: 'c1' }]), [{ id: 'c1' }]);
+  });
+
+  it('Pedidos list catch uses the helper, never raw err.message, and still has empty state', () => {
+    assert.match(pedidos, /lojistaPedidosListError/);
+    assert.match(pedidos, /OnboardingEmptyState|onboardingEmptyState/);
+    assert.match(pedidos, /setOrders\(\[\]\)/);
+    assert.equal(
+      /setErro\(\s*err instanceof Error\s*\?[\s\S]*err\.message/.test(pedidos),
+      false,
+      'list load must not paint raw API err.message (Internal server error)',
+    );
+    assert.match(apiClient, /asMerchantOrderList/);
+    assert.match(apiClient, /\/checkouts\/orders/);
   });
 });

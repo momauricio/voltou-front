@@ -18,6 +18,7 @@ import {
 } from '@/lib/api';
 import {
   formatDateTimePtBr,
+  lojistaPedidosListError,
   merchantOrderRefs,
   PICKUP_ADDRESS_CHANGED_EVENT,
   PICKUP_ADDRESS_NUDGE_MESSAGE,
@@ -196,11 +197,8 @@ export default function PedidosPage() {
         if (!cancelled) setErro(null);
       } catch (err) {
         if (!cancelled) {
-          setErro(
-            err instanceof Error
-              ? err.message
-              : 'Não foi possível carregar os pedidos.',
-          );
+          setOrders([]);
+          setErro(lojistaPedidosListError(err));
         }
       } finally {
         if (!cancelled) setLoading(false);
