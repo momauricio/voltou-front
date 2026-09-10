@@ -3,6 +3,7 @@
  * Recovery campaign queues stay with Voltou staff, not the merchant UI.
  */
 
+import { ApiHttpError } from './api-error.ts';
 import { formatBrMobileNational } from './br-mobile-national.ts';
 
 const SAO_PAULO = 'America/Sao_Paulo';
@@ -21,8 +22,35 @@ export function lojistaDemoBannerVisible(input: {
 }
 
 export function lojistaApiLoadError(cause?: string): string {
-  const suffix = cause?.trim() ? ` (${cause.trim()})` : '';
+  const trimmed = cause?.trim() ?? '';
+  const suffix =
+    trimmed && !isUnhelpfulApiErrorMessage(trimmed) ? ` (${trimmed})` : '';
   return `Não foi possível carregar os dados${suffix}. Tente de novo.`;
+}
+
+const UNHELPFUL_API_ERROR =
+  /internal server error|erro http 5\d{2}|internal\s*error/i;
+
+export function isUnhelpfulApiErrorMessage(
+  message: string | null | undefined,
+): boolean {
+  return Boolean(message && UNHELPFUL_API_ERROR.test(message.trim()));
+}
+
+export const LOJISTA_PEDIDOS_SOFT_LOAD_ERROR =
+  'Não foi possível carregar os pedidos.';
+
+/** Nest/5xx list failures → empty state (no yellow banner). */
+export function lojistaPedidosListError(err: unknown): string | null {
+  if (err instanceof ApiHttpError && err.status >= 500) return null;
+  const message = err instanceof Error ? err.message.trim() : '';
+  if (!message || isUnhelpfulApiErrorMessage(message)) return null;
+  if (/sess[aã]o expirada/i.test(message)) return message;
+  return LOJISTA_PEDIDOS_SOFT_LOAD_ERROR;
+}
+
+export function asMerchantOrderList<T = unknown>(data: unknown): T[] {
+  return Array.isArray(data) ? (data as T[]) : [];
 }
 
 export type MerchantFunnelInput = {

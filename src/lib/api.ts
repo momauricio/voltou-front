@@ -17,6 +17,7 @@ import {
   sessionKindFromPath,
   type SessionKind,
 } from '@/lib/client-session';
+import { asMerchantOrderList } from '@/lib/lojista-panel-ux';
 import {
   staffCustomersAliasPath,
   staffStoreCustomersPath,
@@ -869,7 +870,8 @@ export async function listMerchantOrders(
 ) {
   const q = new URLSearchParams({ tenantId, storeId });
   if (fulfillmentStatus) q.set('fulfillmentStatus', fulfillmentStatus);
-  return jsonFetch<MerchantOrder[]>(`/checkouts/orders?${q.toString()}`);
+  const data = await jsonFetch<unknown>(`/checkouts/orders?${q.toString()}`);
+  return asMerchantOrderList<MerchantOrder>(data);
 }
 
 export async function updateOrderFulfillment(payload: {
