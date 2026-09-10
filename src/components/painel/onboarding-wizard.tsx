@@ -71,11 +71,6 @@ function StepRow({
         <Link href={step.href} className={rowClass}>
           {body}
         </Link>
-        <div className="px-3 pb-3">
-          <Link href={step.href} className={CTA_CLASS}>
-            {step.cta}
-          </Link>
-        </div>
       </div>
     );
   }
