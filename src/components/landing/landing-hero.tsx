@@ -1,5 +1,6 @@
 'use client';
 
+import { trackClickCtaCriarConta } from '@/lib/analytics';
 import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
 
 /**
@@ -46,6 +47,7 @@ export function LandingHero() {
           <div className="landing-reveal landing-reveal-delay-1 mt-8 flex flex-col items-center">
             <a
               href={HOME_CTA_HREF}
+              onClick={() => trackClickCtaCriarConta('hero')}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
             >
               {HOME_CTA_LABEL}

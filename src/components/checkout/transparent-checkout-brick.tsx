@@ -11,6 +11,11 @@ import {
   creditCardMaxInstallments,
 } from '@/lib/credit-card-max-installments';
 import {
+  centsToAmountBrl,
+  trackOnce,
+  trackPaymentApproved,
+} from '@/lib/analytics';
+import {
   MP_BRICK_LOAD_ERROR,
   MP_BRICK_LOAD_TIMEOUT_MS,
   isMercadoPagoResource,
@@ -270,6 +275,13 @@ export function TransparentCheckoutBrick({
               );
 
               if (result.status === 'approved') {
+                trackOnce(`payment_approved:${storeSlug}:${coupon}`, () =>
+                  trackPaymentApproved({
+                    store_id: storeSlug,
+                    order_id: coupon,
+                    amount_brl: centsToAmountBrl(result.amountCents),
+                  }),
+                );
                 onApproved();
                 return;
               }

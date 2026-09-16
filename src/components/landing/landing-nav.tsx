@@ -1,4 +1,7 @@
+'use client';
+
 import { BrandLogo } from '@/components/brand-logo';
+import { trackClickCtaCriarConta } from '@/lib/analytics';
 
 export function LandingNav() {
   return (
@@ -14,6 +17,7 @@ export function LandingNav() {
           </a>
           <a
             href="/entrar?tab=criar"
+            onClick={() => trackClickCtaCriarConta('nav')}
             className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
             Criar Conta

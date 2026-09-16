@@ -11,6 +11,7 @@ import {
   resolveTenantContext,
 } from '@/lib/api';
 import { lojistaApiLoadError } from '@/lib/lojista-panel-ux';
+import { applyOnboardingSnapshot } from '@/lib/analytics';
 import {
   evaluateOnboarding,
   type OnboardingSnapshot,
@@ -49,20 +50,20 @@ export function useOnboardingSnapshot() {
       ]);
 
       const rules = storeRules.rules;
-      setSnapshot(
-        evaluateOnboarding({
-          customerCount: customers.length,
-          productCount: products.length,
-          rulesUpdatedAt: storeRules.updatedAt,
-          descontoPadrao: rules?.descontoPadrao,
-          margemMaxima: rules?.margemMaxima,
-          maxDescontoUmProduto: rules?.maxDescontoUmProduto,
-          maxDescontoDoisOuMais: rules?.maxDescontoDoisOuMais,
-          mercadoPagoConnected: Boolean(mp.connected),
-          pickupAddressText: fulfillment.pickupAddressText,
-          orderNotifyPhoneE164: fulfillment.orderNotifyPhoneE164,
-        }),
-      );
+      const next = evaluateOnboarding({
+        customerCount: customers.length,
+        productCount: products.length,
+        rulesUpdatedAt: storeRules.updatedAt,
+        descontoPadrao: rules?.descontoPadrao,
+        margemMaxima: rules?.margemMaxima,
+        maxDescontoUmProduto: rules?.maxDescontoUmProduto,
+        maxDescontoDoisOuMais: rules?.maxDescontoDoisOuMais,
+        mercadoPagoConnected: Boolean(mp.connected),
+        pickupAddressText: fulfillment.pickupAddressText,
+        orderNotifyPhoneE164: fulfillment.orderNotifyPhoneE164,
+      });
+      applyOnboardingSnapshot(next);
+      setSnapshot(next);
       setError(null);
     } catch (err) {
       setSnapshot(null);

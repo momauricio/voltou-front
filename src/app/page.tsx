@@ -6,6 +6,7 @@ import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingIcp } from '@/components/landing/landing-icp';
 import { LandingMechanism } from '@/components/landing/landing-mechanism';
 import { LandingNav } from '@/components/landing/landing-nav';
+import { LandingViewTracker } from '@/components/landing/landing-view-tracker';
 import { LandingPricing } from '@/components/landing/landing-pricing';
 import { LandingWhatsappMock } from '@/components/landing/landing-whatsapp-mock';
 import { HOME_JSON_LD, HOME_METADATA } from '@/lib/seo';
@@ -21,6 +22,7 @@ export default function Home() {
           __html: JSON.stringify(HOME_JSON_LD).replace(/</g, '\\u003c'),
         }}
       />
+      <LandingViewTracker />
       <LandingNav />
       <main>
         <LandingHero />

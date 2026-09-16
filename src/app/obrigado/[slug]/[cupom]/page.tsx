@@ -4,6 +4,11 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StoreBrandMark } from '@/components/checkout/store-brand-mark';
 import { getPublicOfferStatus, type PublicOfferStatus } from '@/lib/api';
+import {
+  centsToAmountBrl,
+  trackOnce,
+  trackPaymentApproved,
+} from '@/lib/analytics';
 
 function formatCurrency(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', {
@@ -37,6 +42,17 @@ export default function ObrigadoPage({
       cancelled = true;
     };
   }, [slug, cupom]);
+
+  useEffect(() => {
+    if (status?.status !== 'paid') return;
+    trackOnce(`payment_approved:${status.storeSlug}:${cupom}`, () =>
+      trackPaymentApproved({
+        store_id: status.storeSlug,
+        order_id: cupom,
+        amount_brl: centsToAmountBrl(status.amountCents),
+      }),
+    );
+  }, [status, cupom]);
 
   if (loading) {
     return (
