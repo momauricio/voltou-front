@@ -31,6 +31,10 @@ import {
   staffCustomerPhone,
   storeDisplayName,
 } from '@/lib/staff-crm';
+import {
+  centsToAmountBrl,
+  trackCheckoutCreated,
+} from '@/lib/analytics';
 
 const CHANNELS: { id: StaffContactChannel; label: string }[] = [
   { id: 'call', label: 'Ligação' },
@@ -229,6 +233,11 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
         customerId: linkTarget.id,
         productId,
         amountCents,
+      });
+      trackCheckoutCreated({
+        store_id: linkTarget.storeId,
+        order_id: checkout.id,
+        amount_brl: centsToAmountBrl(checkout.amountCents),
       });
       const url = staffCheckoutPublicUrl({
         storeSlug: slugFor(linkTarget),

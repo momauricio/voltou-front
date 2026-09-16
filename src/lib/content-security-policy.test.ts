@@ -34,6 +34,22 @@ describe('contentSecurityPolicy', () => {
     assert.ok(fontSrc?.includes("https:"));
   });
 
+  it('allows Google Tag Manager scripts and the noscript iframe', () => {
+    const policy = contentSecurityPolicy();
+    const scriptSrc = directive(policy, 'script-src');
+    const frameSrc = directive(policy, 'frame-src');
+    assert.ok(scriptSrc, 'script-src must be present');
+    assert.ok(frameSrc, 'frame-src must be present');
+    assert.match(scriptSrc, /https:\/\/www\.googletagmanager\.com/);
+    assert.match(frameSrc, /https:\/\/www\.googletagmanager\.com/);
+  });
+
+  it('allows PostHog US ingest and assets', () => {
+    const scriptSrc = directive(contentSecurityPolicy(), 'script-src');
+    assert.ok(scriptSrc, 'script-src must be present');
+    assert.match(scriptSrc, /https:\/\/us\.i\.posthog\.com/);
+  });
+
   it('allows Google Identity Services scripts and frames for Continuar com Google', () => {
     const policy = contentSecurityPolicy();
     const scriptSrc = directive(policy, 'script-src');

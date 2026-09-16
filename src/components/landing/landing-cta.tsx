@@ -1,6 +1,7 @@
 'use client';
 
 import { useInView } from '@/components/landing/use-in-view';
+import { trackClickCtaCriarConta } from '@/lib/analytics';
 import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
 
 export function LandingCta() {
@@ -24,6 +25,7 @@ export function LandingCta() {
         <div className="relative mt-8 flex justify-center">
           <a
             href={HOME_CTA_HREF}
+            onClick={() => trackClickCtaCriarConta('footer')}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
           >
             {HOME_CTA_LABEL}

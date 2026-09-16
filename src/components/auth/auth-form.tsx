@@ -31,6 +31,7 @@ import {
   lojistaLoginOutcome,
   STAFF_LOGIN_PATH,
 } from '@/lib/staff-crm';
+import { trackSignUp } from '@/lib/analytics';
 
 type Tab = 'entrar' | 'criar';
 
@@ -163,6 +164,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
           ownerPhone,
         }),
       );
+      trackSignUp('google', { store_id: result.user.storeId });
       setPendingGoogleIdToken(null);
       await finishLojistaLogin(result);
     } catch (err) {
@@ -207,6 +209,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
           return;
         }
         const result = await registerAccount(parsed.body);
+        trackSignUp('email');
         router.push(
           `/verificar-email?email=${encodeURIComponent(result.email)}`,
         );
