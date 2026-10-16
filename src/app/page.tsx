@@ -35,10 +35,15 @@ export default function Home() {
         <LandingCta />
       </main>
       <footer className="border-t border-border px-4 py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Voltou ·{' '}
-        <a href="/entrar" className="hover:text-foreground">
-          Entrar
-        </a>
+        <p className="mx-auto max-w-xl text-[15px] leading-relaxed text-foreground">
+          Em 30 dias, pelo menos 2 vendas. Se não der, você para de usar quando quiser, sem multa.
+        </p>
+        <p className="mt-3">
+          © {new Date().getFullYear()} Voltou ·{' '}
+          <a href="/entrar" className="hover:text-foreground">
+            Entrar
+          </a>
+        </p>
       </footer>
     </div>
   );

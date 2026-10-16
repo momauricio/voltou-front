@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { useInView } from '@/components/landing/use-in-view';
 
 /**
- * FAQ alinhado ao ICP (loja física / WhatsApp / só comissão) e às objeções
+ * FAQ alinhado ao ICP (loja física / contato feito pela Voltou / só comissão) e às objeções
  * mais comuns no Linear (doc 01 — Visão & ICP + princípios do produto).
  * Ajuste fino comercial: validar com o dono antes de tratar como policy legal.
  */
 const FAQ_ITEMS = [
   {
-    q: 'Preciso trocar o WhatsApp da loja?',
-    a: 'Não. A conversa sai do número da sua loja — o mesmo que o cliente já conhece. Você não troca de número nem cria um perfil “Voltou” pra o cliente falar.',
+    q: 'Quem fala com o cliente?',
+    a: 'O time e a IA da Voltou. Você só cadastra nome e contato no balcão. Você não dispara a mensagem.',
   },
   {
     q: 'Como funciona a comissão? Vocês processam o pagamento?',
@@ -27,11 +27,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Vocês vendem ou compartilham os dados dos meus clientes?',
-    a: 'Não. Nome, telefone e o que a pessoa comprou ficam pra uso da sua loja — recuperar venda e avisar pedido. Não vendemos lista de clientes e não passamos esses dados pra terceiros fazerem marketing. A mensagem chega pelo WhatsApp da sua loja, não de um número estranho.',
+    a: 'Não. Nome, telefone e o que a pessoa comprou ficam pra recuperar a venda e avisar pedido. Não vendemos lista de clientes e não passamos esses dados pra terceiros fazerem marketing. Quem faz o contato é o time e a IA da Voltou.',
   },
   {
     q: 'Preciso entender de tecnologia pra usar?',
-    a: 'Não. No balcão você anota nome, WhatsApp e o que a pessoa comprou (ou quis) em cerca de 30 segundos. O restante — quando chamar, o que oferecer e o link de pagamento — a Voltou cuida. Não precisa de sistema de caixa nem de equipe de TI.',
+    a: 'Não. No balcão você anota nome, contato e o que a pessoa comprou (ou quis) em cerca de 30 segundos. O restante — quando chamar, o que oferecer e o link de pagamento — a Voltou cuida. Não precisa de sistema de caixa nem de equipe de TI.',
   },
 ] as const;
 

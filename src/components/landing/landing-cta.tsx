@@ -19,14 +19,13 @@ export function LandingCta() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(45%_0.1_155_/0.4),transparent_55%)]"
         />
         <h2 className="relative text-2xl font-bold tracking-tight sm:text-3xl sm:leading-tight">
-          Comece hoje. Se em 30 dias não recuperar pelo menos 2 vendas, você
-          cancela.
+          Em 30 dias, pelo menos 2 vendas. Se não der, você para de usar quando quiser, sem multa.
         </h2>
         <div className="relative mt-8 flex justify-center">
           <a
             href={HOME_CTA_HREF}
             onClick={() => trackClickCtaCriarConta('footer')}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#0e9254] px-7 text-sm font-semibold text-white transition hover:opacity-95"
           >
             {HOME_CTA_LABEL}
             <span aria-hidden>→</span>

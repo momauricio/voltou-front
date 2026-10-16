@@ -124,6 +124,10 @@ describe('home metadata wiring', () => {
   it('does not pin a global canonical of / on the root layout', () => {
     assert.doesNotMatch(layout, /canonical:\s*["']\/["']/);
     assert.match(layout, /lang="pt-BR"/);
+    assert.match(layout, /rel="icon" href="\/favicon.ico" sizes="any"/);
+    assert.match(layout, /rel="icon" href="\/favicon.svg" type="image\/svg\+xml"/);
+    assert.match(layout, /rel="apple-touch-icon" href="\/apple-touch-icon.png"/);
+    assert.match(layout, /themeColor:\s*"#0e9254"/);
   });
 });
 
@@ -147,6 +151,12 @@ describe('GEO JSON-LD', () => {
       assert.equal(node.url, SITE_URL);
       assert.equal(node.description, HOME_DESCRIPTION);
     }
+
+    const organization = graph.find(
+      (node: { '@type': string }) => node['@type'] === 'Organization',
+    ) as { logo?: string; slogan?: string };
+    assert.equal(organization.logo, 'https://www.voltouapp.com/icon-512.png');
+    assert.equal(organization.slogan, 'Especialista na 2ª venda.');
   });
 });
 

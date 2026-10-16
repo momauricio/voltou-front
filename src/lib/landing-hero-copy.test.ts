@@ -10,6 +10,8 @@ const page = readFileSync(join(here, '../app/page.tsx'), 'utf8');
 const hero = readFileSync(join(landingDir, 'landing-hero.tsx'), 'utf8');
 const nav = readFileSync(join(landingDir, 'landing-nav.tsx'), 'utf8');
 const faq = readFileSync(join(landingDir, 'landing-faq.tsx'), 'utf8');
+const cta = readFileSync(join(landingDir, 'landing-cta.tsx'), 'utf8');
+const brand = readFileSync(join(landingDir, 'landing-brand.tsx'), 'utf8');
 
 function walkTsx(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -67,10 +69,12 @@ describe('homepage marketing angles', () => {
       homeSource,
       /Quem levou a peça\. Quem experimentou, gostou, deixou o número\./,
     );
-    assert.match(homeSource, /Cupom no nome/);
+    assert.match(homeSource, /cupom personalizado para o cliente/);
+    assert.doesNotMatch(homeSource, /cupom no nome/i);
+    assert.doesNotMatch(homeSource, /cupom com o nome/i);
     assert.match(
       homeSource,
-      /O cliente da sua loja recebe cupom com o nome e uma condição especial\./,
+      /Tem cupom personalizado para o cliente e uma condição especial\./,
     );
     assert.match(homeSource, /Já está na arara/);
     assert.match(
@@ -86,8 +90,40 @@ describe('homepage forbidden copy', () => {
     assert.doesNotMatch(homeSource, /A segunda ninguém puxa/);
   });
 
-  it('paints the landing wordmark with #0e9254', () => {
-    assert.match(nav, /#0e9254/i);
+  it('locks the public header to the Dieter brand, not an h1', () => {
+    assert.match(brand, /aria-label="Voltou, página inicial"/);
+    assert.match(brand, /aria-hidden="true"/);
+    assert.match(brand, /viewBox="306 173 465 770"/);
+    assert.match(brand, /fill="#0e9254"/);
+    assert.match(brand, /fill="#f6fbf6"/);
+    assert.match(brand, /text-\[#111e15\]/);
+    assert.match(brand, /tracking-\[-0\.01em\]/);
+    assert.match(brand, /Especialista na 2ª venda\./);
+    const symbol = brand.slice(brand.indexOf('<svg'), brand.indexOf('</svg>'));
+    assert.doesNotMatch(symbol, /role=|aria-label=/);
+    assert.doesNotMatch(brand, /<h1\b/);
+    assert.match(nav, /bg-\[#f6fbf6\]/);
+    assert.match(nav, /h-14/);
+    assert.match(nav, /md:h-16/);
+    assert.doesNotMatch(nav, /logo_completo/);
+    assert.doesNotMatch(`${nav}\n${brand}`, /<h1\b/);
+  });
+
+  it('keeps one green CTA and drops store-WhatsApp outreach promises', () => {
+    assert.match(nav, /bg-\[#0e9254\]/);
+    assert.doesNotMatch(homeSource, /WhatsApp da sua loja/i);
+    assert.doesNotMatch(homeSource, /WhatsApp da loja/i);
+    assert.doesNotMatch(homeSource, /número da sua loja/i);
+    assert.doesNotMatch(homeSource, /número que o cliente já conhece/i);
+    assert.doesNotMatch(homeSource, /sem pagar nada/i);
+    assert.match(
+      cta,
+      /Em 30 dias, pelo menos 2 vendas\. Se não der, você para de usar quando quiser, sem multa\./,
+    );
+    assert.match(
+      page,
+      /Em 30 dias, pelo menos 2 vendas\. Se não der, você para de usar quando quiser, sem multa\./,
+    );
   });
 
   it('keeps the FAQ 5% commission line in the FAQ only', () => {

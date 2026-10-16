@@ -6,7 +6,7 @@ const AGENDA_ITEMS = [
   'Pensar em campanha pra vender mais',
 ] as const;
 
-const ASSET_CHIPS = ['Nome', 'WhatsApp', 'Interesse'] as const;
+const ASSET_CHIPS = ['Nome', 'Contato', 'Interesse'] as const;
 
 export function LojistaDayMock() {
   return (
@@ -28,7 +28,7 @@ export function LojistaDayMock() {
         </ul>
         <div className="my-4 border-t border-border/80" />
         <p className="text-sm text-muted-foreground">
-          WhatsApp de quem já se interessou → ninguém cuida
+          Contato de quem já se interessou → ninguém cuida
         </p>
       </div>
 
