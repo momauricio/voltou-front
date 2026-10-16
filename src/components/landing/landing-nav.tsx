@@ -1,16 +1,13 @@
 'use client';
 
-import { BrandLogo } from '@/components/brand-logo';
+import { LandingBrand } from '@/components/landing/landing-brand';
 import { trackClickCtaCriarConta } from '@/lib/analytics';
 
 export function LandingNav() {
   return (
-    <header className="absolute inset-x-0 top-0 z-50">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo
-          withPeriod={false}
-          className="[&>span:first-child]:bg-[#0e9254] [&>span:last-child]:text-[#0e9254]"
-        />
+    <header className="sticky top-0 z-50 h-14 border-b border-[rgba(17,30,21,0.08)] bg-[#f6fbf6] md:h-16">
+      <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+        <LandingBrand />
         <nav className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground sm:gap-3">
           <a href="/entrar" className="px-2 py-2 hover:text-foreground">
             Entrar
@@ -18,7 +15,7 @@ export function LandingNav() {
           <a
             href="/entrar?tab=criar"
             onClick={() => trackClickCtaCriarConta('nav')}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-[#0e9254] px-4 text-sm font-semibold text-white transition hover:opacity-95"
           >
             Criar Conta
           </a>

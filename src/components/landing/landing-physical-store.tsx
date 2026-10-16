@@ -7,16 +7,17 @@ export function LandingPhysicalStore() {
   return (
     <LandingFeatureRow
       id="loja-fisica"
-      title="Você já tem nome, WhatsApp e o interesse do cliente — e a venda some na mesma."
+      title="Você já tem nome, contato e o interesse do cliente — e a venda some na mesma."
       body={
         <>
           <span className="block">
             O dia do lojista não para: pagar conta, comprar produto, cuidar da equipe,
-            controlar estoque. Sobrar tempo pra vender bem no WhatsApp depois que a pessoa
-            saiu da loja? Quase nunca. E a equipe da loja também não foi treinada pra isso.
+            controlar estoque. Sobrar tempo pra chamar o cliente de volta depois que a
+            pessoa saiu da loja? Quase nunca. E a equipe da loja também não foi treinada
+            pra isso.
           </span>
           <span className="mt-4 block">
-            Na mão: nome · WhatsApp · o que a pessoa quis. Mesmo assim, ninguém oferece de
+            Na mão: nome · contato · o que a pessoa quis. Mesmo assim, ninguém oferece de
             novo com cuidado.
           </span>
           <span className="mt-4 block font-medium text-foreground">

@@ -4,17 +4,17 @@ const STEPS = [
   {
     n: '1',
     title: 'Você cadastra no balcão',
-    body: 'Nome, WhatsApp e o que a pessoa comprou ou quis — uns 30 segundos.',
+    body: 'Nome, contato e o que a pessoa comprou ou quis — uns 30 segundos.',
   },
   {
     n: '2',
     title: 'A Voltou vende de novo',
-    body: 'Entra em contato pelo WhatsApp da loja com produto e cupom na medida.',
+    body: 'Time e IA chamam com o produto certo e um cupom personalizado para o cliente.',
   },
   {
     n: '3',
     title: 'O cliente paga no link',
-    body: 'Sem você ficar cobrando no WhatsApp. Quando paga, o dinheiro cai pra você.',
+    body: 'Você não fica cobrando. Quando paga, o dinheiro cai pra você.',
   },
   {
     n: '4',

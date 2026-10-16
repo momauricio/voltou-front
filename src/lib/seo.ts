@@ -77,6 +77,8 @@ export const HOME_JSON_LD = {
       name: SITE_NAME,
       url: SITE_URL,
       description: HOME_DESCRIPTION,
+      logo: `${SITE_URL}/icon-512.png`,
+      slogan: 'Especialista na 2ª venda.',
     },
     {
       '@type': 'WebSite',

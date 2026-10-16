@@ -8,8 +8,8 @@ const ANGLES = [
     body: 'Quem levou a peça. Quem experimentou, gostou, deixou o número. Os dois já passaram no seu balcão. A Voltou oferece a condição e fecha. Lucro em cima de quem já entrou na sua loja.',
   },
   {
-    title: 'Cupom no nome',
-    body: 'O cliente da sua loja recebe cupom com o nome e uma condição especial. Atendimento requintado. A Voltou fecha a 2ª venda. Você lucra. A loja continua sendo a da sua cliente.',
+    title: 'cupom personalizado para o cliente',
+    body: 'Tem cupom personalizado para o cliente e uma condição especial. Atendimento requintado. A Voltou fecha a 2ª venda. Você lucra. A loja continua sendo a da sua cliente.',
   },
   {
     title: 'Já está na arara',

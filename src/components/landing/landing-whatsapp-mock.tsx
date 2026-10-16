@@ -7,8 +7,8 @@ export function LandingWhatsappMock() {
   return (
     <LandingFeatureRow
       id="prova"
-      title="A conversa acontece no WhatsApp da sua loja"
-      body="A Voltou sugere o produto e o cupom; a mensagem sai do número que o cliente já conhece. O cliente paga no link e você recebe o aviso pra entregar."
+      title="A Voltou chama. Você não dispara."
+      body="No balcão, nome e contato. O time e a IA da Voltou fazem o contato, com cupom personalizado para o cliente. O cliente paga no link e você recebe o aviso pra entregar."
       visual={<WhatsappProductMock />}
     />
   );

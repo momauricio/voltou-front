@@ -19,11 +19,11 @@ export function WhatsappProductMock() {
             </svg>
           </span>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-sm font-semibold text-white">
-            VC
+            V
           </div>
           <div className="min-w-0 flex-1 text-left">
             <p className="truncate text-[15px] font-medium leading-tight text-white">
-              Voltou Calçados
+              Voltou
             </p>
             <p className="truncate text-[12px] leading-tight text-white/55">
               online
@@ -56,7 +56,7 @@ export function WhatsappProductMock() {
             Hoje
           </p>
 
-          {/* Outgoing — loja */}
+          {/* Outgoing — Voltou */}
           <div className="ml-auto max-w-[88%]">
             <div className="relative rounded-lg rounded-tr-none bg-[#005c4b] px-2.5 pb-1.5 pt-1.5 text-left text-[13.5px] leading-[1.35] text-[#e9edef] shadow-sm">
               <span

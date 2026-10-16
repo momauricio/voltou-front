@@ -26,9 +26,9 @@ export function LandingMechanism() {
               inView ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
             }`}
           >
-            Você cadastra o cliente no balcão. A Voltou entra em contato e vende
-            de novo pelo WhatsApp da loja. Quando o cliente paga, o dinheiro cai
-            e você recebe o aviso pra preparar a entrega.
+            Você cadastra nome e contato no balcão. O time e a IA da Voltou
+            entram em contato e fecham a 2ª venda. Quando o cliente paga, o
+            dinheiro cai e você recebe o aviso pra preparar a entrega.
           </p>
         </div>
 
