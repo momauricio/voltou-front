@@ -352,6 +352,11 @@ export function StaffCustomersPanel({ storeId }: { storeId: string }) {
                     <p className="font-medium text-foreground">
                       {customer.displayName}
                     </p>
+                    {customer.lastPurchasedItem ? (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        O que ele levou: {customer.lastPurchasedItem}
+                      </p>
+                    ) : null}
                     {issuedUrls[customer.id] ? (
                       <IssuedLink
                         url={issuedUrls[customer.id]!}
@@ -640,6 +645,11 @@ function StaffCustomerCard({
   return (
     <li className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
       <p className="font-semibold text-foreground">{customer.displayName}</p>
+      {customer.lastPurchasedItem ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          O que ele levou: {customer.lastPurchasedItem}
+        </p>
+      ) : null}
       <p className="mt-2 text-sm tabular-nums text-foreground">
         {staffCustomerPhone(customer)}
       </p>

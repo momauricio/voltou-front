@@ -72,6 +72,8 @@ export type MockCustomer = {
   phoneMasked: string;
   whatsapp: string;
   phoneIsMasked?: boolean;
+  /** "O que ele levou" — texto livre opcional. */
+  lastPurchasedItem?: string;
   status: ClienteStatus;
   produto: string;
   compra: string;
@@ -370,6 +372,7 @@ export function createCustomer(payload: {
   nome: string;
   whatsapp: string;
   produtoInteresse: string;
+  lastPurchasedItem?: string;
 }): MockCustomer {
   const product = findProductByName(payload.produtoInteresse) ?? MOCK_PRODUCTS[0];
   const interest = {
@@ -387,6 +390,7 @@ export function createCustomer(payload: {
     displayName: payload.nome.trim(),
     whatsapp: payload.whatsapp.trim(),
     phoneMasked: maskWhatsapp(payload.whatsapp.trim()),
+    lastPurchasedItem: payload.lastPurchasedItem?.trim() || undefined,
     status: 'Aguardando',
     produto: product.nome,
     compra: '—',
@@ -565,6 +569,13 @@ export function upsertCustomerFromImport(payload: {
 
 export function removeCustomer(id: string) {
   customers = customers.filter((c) => c.id !== id);
+  notify();
+}
+
+export function setLastPurchasedItem(id: string, value: string | null) {
+  const customer = findCustomer(id);
+  if (!customer) return;
+  customer.lastPurchasedItem = value?.trim() || undefined;
   notify();
 }
 

@@ -73,6 +73,7 @@ function ClientesPageInner() {
   const [novoNome, setNovoNome] = useState('');
   const [novoWhatsapp, setNovoWhatsapp] = useState('');
   const [novoProduto, setNovoProduto] = useState('');
+  const [novoLevou, setNovoLevou] = useState('');
 
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [csvPreview, setCsvPreview] = useState<CustomerCsvRow[]>([]);
@@ -186,6 +187,7 @@ function ClientesPageInner() {
   async function handleNovoCliente(e: FormEvent) {
     e.preventDefault();
     if (!novoNome.trim() || !novoWhatsapp.trim()) return;
+    const levou = novoLevou.trim();
 
     if (tenantCtx && usingApi) {
       try {
@@ -195,6 +197,7 @@ function ClientesPageInner() {
           storeId: tenantCtx.storeId,
           displayName: novoNome.trim(),
           phone: novoWhatsapp.trim(),
+          ...(levou ? { lastPurchasedItem: levou } : {}),
           ...(apiProduct
             ? { interestProductId: apiProduct.id }
             : novoProduto
@@ -214,11 +217,13 @@ function ClientesPageInner() {
         nome: novoNome.trim(),
         whatsapp: novoWhatsapp.trim(),
         produtoInteresse: novoProduto,
+        lastPurchasedItem: levou || undefined,
       });
     }
 
     setNovoNome('');
     setNovoWhatsapp('');
+    setNovoLevou('');
     setNovoProduto(produtoOptions[0]?.nome ?? '');
     setModalOpen(false);
   }
@@ -540,6 +545,23 @@ function ClientesPageInner() {
               className={fieldClass}
               required
             />
+          </div>
+          <div>
+            <label htmlFor="novoLevou" className="text-sm font-medium text-foreground">
+              O que ele levou
+            </label>
+            <input
+              id="novoLevou"
+              value={novoLevou}
+              onChange={(e) => setNovoLevou(e.target.value)}
+              placeholder="Ex.: vestido floral, tênis branco"
+              maxLength={120}
+              aria-describedby="novoLevouHelp"
+              className={fieldClass}
+            />
+            <p id="novoLevouHelp" className="mt-1 text-xs text-muted-foreground">
+              Opcional. Usamos para lembrar o cliente da peça na próxima mensagem.
+            </p>
           </div>
           {produtoOptions.length > 0 ? (
           <div>

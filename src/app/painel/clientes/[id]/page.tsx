@@ -17,6 +17,7 @@ import {
   markCheckoutPaid,
   removeCustomer,
   saleSourceLabel,
+  setLastPurchasedItem,
   subscribeCustomers,
   type ClienteStatus,
   type CustomerEvent,
@@ -31,6 +32,7 @@ import {
   markApiCheckoutPaid,
   resolveTenantContext,
   setApiCustomerOptOut,
+  updateApiCustomer,
   type ApiProduct,
 } from '@/lib/api';
 import {
@@ -93,6 +95,10 @@ function ClienteDetailInner({ id }: { id: string }) {
   const [apiProducts, setApiProducts] = useState<ApiProduct[] | null>(null);
   const [apiLoading, setApiLoading] = useState(true);
   const [optOutBusy, setOptOutBusy] = useState(false);
+  const [levouEditing, setLevouEditing] = useState(false);
+  const [levouDraft, setLevouDraft] = useState('');
+  const [levouBusy, setLevouBusy] = useState(false);
+  const [levouError, setLevouError] = useState<string | null>(null);
 
   useEffect(() => subscribeCustomers(() => refresh()), []);
 
@@ -300,6 +306,37 @@ function ClienteDetailInner({ id }: { id: string }) {
     }
   }
 
+  function startEditLevou() {
+    setLevouDraft(customer?.lastPurchasedItem ?? '');
+    setLevouError(null);
+    setLevouEditing(true);
+  }
+
+  async function handleSaveLevou(e: FormEvent) {
+    e.preventDefault();
+    const value = levouDraft.trim() || null;
+    if (usingApi && tenantCtx) {
+      setLevouBusy(true);
+      setLevouError(null);
+      try {
+        const detail = await updateApiCustomer(id, tenantCtx.tenantId, {
+          lastPurchasedItem: value,
+        });
+        setApiCustomer(mapApiCustomerDetail(detail));
+      } catch (err) {
+        setLevouError(
+          err instanceof Error ? err.message : 'Erro ao salvar o que ele levou.',
+        );
+        return;
+      } finally {
+        setLevouBusy(false);
+      }
+    } else {
+      setLastPurchasedItem(id, value);
+    }
+    setLevouEditing(false);
+  }
+
   function copyUrl(url: string) {
     navigator.clipboard.writeText(url).then(() => {
       window.alert('Link copiado para a área de transferência.');
@@ -356,6 +393,62 @@ function ClienteDetailInner({ id }: { id: string }) {
           <p className="mt-1.5 text-sm text-muted-foreground">
             WhatsApp {phoneView.display}
           </p>
+          {levouEditing ? (
+            <form onSubmit={handleSaveLevou} className="mt-2 max-w-md">
+              <label htmlFor="fichaLevou" className="text-sm font-medium text-foreground">
+                O que ele levou
+              </label>
+              <input
+                id="fichaLevou"
+                value={levouDraft}
+                onChange={(e) => setLevouDraft(e.target.value)}
+                placeholder="Ex.: vestido floral, tênis branco"
+                maxLength={120}
+                autoFocus
+                className={fieldClass}
+              />
+              {levouError ? (
+                <p className="mt-1 text-xs text-red-600">{levouError}</p>
+              ) : null}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={levouBusy}
+                  className="inline-flex h-9 items-center rounded-xl bg-[#0e9254] px-4 text-sm font-medium text-[#f6fbf6] transition hover:opacity-95 disabled:opacity-60"
+                >
+                  {levouBusy ? 'Salvando…' : 'Salvar'}
+                </button>
+                <button
+                  type="button"
+                  disabled={levouBusy}
+                  onClick={() => setLevouEditing(false)}
+                  className="inline-flex h-9 items-center px-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : customer.lastPurchasedItem ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              O que ele levou:{' '}
+              <span className="text-foreground">{customer.lastPurchasedItem}</span>{' '}
+              <button
+                type="button"
+                onClick={startEditLevou}
+                className="text-sm text-muted-foreground underline underline-offset-2 transition hover:text-primary"
+              >
+                Editar
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={startEditLevou}
+              className="mt-1 text-sm text-muted-foreground underline underline-offset-2 transition hover:text-primary"
+            >
+              Adicionar o que ele levou
+            </button>
+          )}
           {phoneView.masked ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Número mascarado — é o WhatsApp que a API da loja devolve para atendimento.

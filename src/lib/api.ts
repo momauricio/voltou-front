@@ -992,6 +992,8 @@ export type ApiCustomerSummary = {
   phone?: string | null;
   phoneDisplay?: string | null;
   phoneE164?: string | null;
+  /** "O que ele levou" — texto livre opcional (máx. 120). */
+  lastPurchasedItem?: string | null;
   optedOutAt: string | null;
   createdAt: string;
   customerInterests: ApiInterest[];
@@ -1014,6 +1016,8 @@ export type ApiCustomerDetail = {
   phoneE164?: string | null;
   whatsapp?: string | null;
   notes: string | null;
+  /** "O que ele levou" — texto livre opcional (máx. 120). */
+  lastPurchasedItem?: string | null;
   optedOutAt: string | null;
   createdAt: string;
   customerInterests: ApiInterest[];
@@ -1034,12 +1038,24 @@ export async function getApiCustomer(tenantId: string, customerId: string) {
   );
 }
 
+export async function updateApiCustomer(
+  customerId: string,
+  tenantId: string,
+  payload: { lastPurchasedItem?: string | null },
+) {
+  return jsonFetch<ApiCustomerDetail>(
+    `/customers/${encodeURIComponent(customerId)}?tenantId=${encodeURIComponent(tenantId)}`,
+    { method: 'PATCH', body: JSON.stringify(payload) },
+  );
+}
+
 export async function createApiCustomer(payload: {
   tenantId: string;
   storeId: string;
   displayName: string;
   phone: string;
   notes?: string;
+  lastPurchasedItem?: string | null;
   interestProductId?: string;
   interestProductName?: string;
 }) {
@@ -1438,6 +1454,7 @@ export type StaffCustomer = {
   lastContactedAt: string | null;
   optedOutAt: string | null;
   notes?: string | null;
+  lastPurchasedItem?: string | null;
   createdAt: string;
   tenant: { id: string; name: string };
   store: { id: string; name: string; slug: string };

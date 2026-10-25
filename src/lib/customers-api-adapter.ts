@@ -91,6 +91,7 @@ export function mapApiCustomerSummary(api: ApiCustomerSummary): MockCustomer {
     phoneMasked: phone.display,
     whatsapp: phone.display,
     phoneIsMasked: phone.masked,
+    lastPurchasedItem: api.lastPurchasedItem?.trim() || undefined,
     status: deriveStatus({
       lastSaleAt: lastSale?.soldAt ?? null,
       hasPendingCheckout,
@@ -204,6 +205,7 @@ export function mapApiCustomerDetail(api: ApiCustomerDetail): CustomerDetailView
     phoneMasked: phone.display,
     whatsapp: phone.display,
     phoneIsMasked: phone.masked,
+    lastPurchasedItem: api.lastPurchasedItem?.trim() || undefined,
     status: deriveStatus({
       lastSaleAt: lastSale?.soldAt ?? null,
       hasPendingCheckout,
