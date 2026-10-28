@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, Suspense, use, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Modal } from '@/components/painel/modal';
+import { OQueLevouField } from '@/components/painel/o-que-levou-field';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
   MOCK_PRODUCTS,
@@ -395,17 +396,14 @@ function ClienteDetailInner({ id }: { id: string }) {
           </p>
           {levouEditing ? (
             <form onSubmit={handleSaveLevou} className="mt-2 max-w-md">
-              <label htmlFor="fichaLevou" className="text-sm font-medium text-foreground">
-                O que ele levou
-              </label>
-              <input
+              <OQueLevouField
                 id="fichaLevou"
                 value={levouDraft}
-                onChange={(e) => setLevouDraft(e.target.value)}
-                placeholder="Ex.: vestido floral, tênis branco"
-                maxLength={120}
-                autoFocus
-                className={fieldClass}
+                onChange={setLevouDraft}
+                defaultOpen
+                autoFocus={Boolean(customer.lastPurchasedItem)}
+                disabled={levouBusy}
+                inputClassName={fieldClass}
               />
               {levouError ? (
                 <p className="mt-1 text-xs text-red-600">{levouError}</p>
@@ -443,10 +441,12 @@ function ClienteDetailInner({ id }: { id: string }) {
           ) : (
             <button
               type="button"
+              aria-expanded={false}
+              aria-controls="fichaLevouPanel"
               onClick={startEditLevou}
-              className="mt-1 text-sm text-muted-foreground underline underline-offset-2 transition hover:text-primary"
+              className="flex h-11 w-full max-w-md items-center text-left text-sm text-[#111e15]/70"
             >
-              Adicionar o que ele levou
+              + O que ele levou (opcional)
             </button>
           )}
           {phoneView.masked ? (

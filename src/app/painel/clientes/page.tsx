@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/painel/page-header';
 import { useOnboardingSnapshot } from '@/components/painel/use-onboarding-snapshot';
 import { CLIENTE_CTA, CLIENTE_SENTENCE } from '@/lib/lojista-onboarding';
 import { Modal } from '@/components/painel/modal';
+import { OQueLevouField } from '@/components/painel/o-que-levou-field';
 import { StatusBadge } from '@/components/painel/status-badge';
 import {
   createCustomer,
@@ -546,23 +547,12 @@ function ClientesPageInner() {
               required
             />
           </div>
-          <div>
-            <label htmlFor="novoLevou" className="text-sm font-medium text-foreground">
-              O que ele levou
-            </label>
-            <input
-              id="novoLevou"
-              value={novoLevou}
-              onChange={(e) => setNovoLevou(e.target.value)}
-              placeholder="Ex.: vestido floral, tênis branco"
-              maxLength={120}
-              aria-describedby="novoLevouHelp"
-              className={fieldClass}
-            />
-            <p id="novoLevouHelp" className="mt-1 text-xs text-muted-foreground">
-              Opcional. Usamos para lembrar o cliente da peça na próxima mensagem.
-            </p>
-          </div>
+          <OQueLevouField
+            id="novoLevou"
+            value={novoLevou}
+            onChange={setNovoLevou}
+            inputClassName={fieldClass}
+          />
           {produtoOptions.length > 0 ? (
           <div>
             <label htmlFor="novoProduto" className="text-sm font-medium text-foreground">
