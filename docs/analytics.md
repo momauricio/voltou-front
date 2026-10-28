@@ -37,7 +37,9 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 
 The app falls back to those values if env is missing so a build still works. See `.env.example` and `Dockerfile` `ARG`s.
 
-Init is once on the client (`AnalyticsProvider`). `person_profiles: identified_only`. On `sign_up`, `posthog.identify` uses `store_id` when the signup response has it (Google), otherwise a non-PII `signup_<uuid>`. No email, phone, or name on the person.
+Init is once on the client, at module load of `src/lib/posthog-client.ts` (before any component effect, so `view_landing` is not dropped); `AnalyticsProvider` calls it again as an idempotent fallback. `person_profiles: identified_only`. On `sign_up`, `posthog.identify` uses `store_id` when the signup response has it (Google), otherwise a non-PII `signup_<uuid>`. No email, phone, or name on the person.
+
+Pageviews: `capture_pageview: 'history_change'` sends `$pageview` on the initial load and on every App Router client-side navigation. `capture_pageleave` and `autocapture` stay off.
 
 ## Locked event taxonomy
 

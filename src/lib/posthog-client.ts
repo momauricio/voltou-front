@@ -20,7 +20,7 @@ export function initPosthog(): void {
   posthog.init(resolvePosthogKey(), {
     api_host: resolvePosthogHost(),
     person_profiles: 'identified_only',
-    capture_pageview: false,
+    capture_pageview: 'history_change',
     capture_pageleave: false,
     autocapture: false,
   });
@@ -34,3 +34,7 @@ export function initPosthog(): void {
     },
   });
 }
+
+// Init at module load (client only) so sinks exist before any component effect
+// runs — child effects (e.g. view_landing) fire before AnalyticsProvider's.
+initPosthog();

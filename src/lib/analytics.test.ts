@@ -376,4 +376,12 @@ describe('front call-site wiring', () => {
     assert.ok(paidCall, 'obrigado must call trackPaymentApproved with an object');
     assert.doesNotMatch(paidCall[0], /phone|email|cnpj|customerName/i);
   });
+
+  it('PostHog sends $pageview on load + App Router navigations and inits at module scope', () => {
+    const client = readFileSync(new URL('./posthog-client.ts', import.meta.url), 'utf8');
+    assert.match(client, /capture_pageview: 'history_change'/);
+    assert.match(client, /autocapture: false/);
+    assert.match(client, /person_profiles: 'identified_only'/);
+    assert.match(client, /^initPosthog\(\);$/m);
+  });
 });
