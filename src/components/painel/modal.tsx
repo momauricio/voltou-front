@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
 
 type ModalProps = {
   open: boolean;
@@ -9,6 +9,8 @@ type ModalProps = {
   description?: string;
   children: ReactNode;
   size?: 'md' | 'lg';
+  /** Rodapé fixo (não rola) abaixo do corpo — ex.: ações do formulário. */
+  footer?: ReactNode;
 };
 
 export function Modal({
@@ -18,7 +20,9 @@ export function Modal({
   description,
   children,
   size = 'md',
+  footer,
 }: ModalProps) {
+  const vvHeight = useVisualViewportHeight(open && Boolean(footer));
   if (!open) return null;
 
   return (
@@ -31,6 +35,11 @@ export function Modal({
           role="dialog"
           aria-modal="true"
           onClick={(e) => e.stopPropagation()}
+          style={
+            vvHeight != null
+              ? { maxHeight: `min(90dvh, 880px, ${Math.max(vvHeight - 32, 0)}px)` }
+              : undefined
+          }
           className={`flex max-h-[min(90dvh,880px)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] ${
             size === 'lg' ? 'max-w-2xl' : 'max-w-md'
           }`}
@@ -57,8 +66,36 @@ export function Modal({
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
             {children}
           </div>
+          {footer ? (
+            <div className="shrink-0 border-t border-[#111e15]/10 bg-white px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Altura do visualViewport (encolhe com o teclado virtual) enquanto `enabled`.
+ * Retorna null quando desativado, no SSR ou sem suporte — sem listeners.
+ */
+function useVisualViewportHeight(enabled: boolean): number | null {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const vv = enabled && typeof window !== 'undefined' ? window.visualViewport : null;
+      if (!vv) return () => {};
+      vv.addEventListener('resize', onChange);
+      vv.addEventListener('scroll', onChange);
+      return () => {
+        vv.removeEventListener('resize', onChange);
+        vv.removeEventListener('scroll', onChange);
+      };
+    },
+    [enabled],
+  );
+  const getSnapshot = () =>
+    enabled && typeof window !== 'undefined' ? (window.visualViewport?.height ?? null) : null;
+  return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }

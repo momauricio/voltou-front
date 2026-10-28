@@ -446,7 +446,7 @@ function ClienteDetailInner({ id }: { id: string }) {
               onClick={startEditLevou}
               className="flex h-11 w-full max-w-md items-center text-left text-sm text-[#111e15]/70"
             >
-              + O que ele levou (opcional)
+              + O que o cliente levou (opcional)
             </button>
           )}
           {phoneView.masked ? (

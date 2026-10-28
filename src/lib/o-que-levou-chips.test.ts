@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import {
   LEVOU_CHIP_GROUPS,
@@ -74,5 +75,18 @@ describe('o-que-levou-chips', () => {
     assert.equal(toggleChip(almost, 'Bota').length, 120);
     assert.equal(canAddChip(almost, 'Sandália'), false);
     assert.equal(toggleChip(almost, 'Sandália'), almost);
+  });
+});
+
+describe('OQueLevouField copy', () => {
+  const field = readFileSync(
+    new URL('../components/painel/o-que-levou-field.tsx', import.meta.url),
+    'utf8',
+  );
+
+  it('uses "o cliente" in the row label and input aria-label', () => {
+    assert.ok(field.includes('O que o cliente levou (opcional)'));
+    assert.ok(field.includes('aria-label="O que o cliente levou"'));
+    assert.equal(field.includes('O que ele levou'), false);
   });
 });

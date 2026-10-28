@@ -519,8 +519,30 @@ function ClientesPageInner() {
         onClose={() => setModalOpen(false)}
         title="Novo cliente"
         description="Cadastro manual — o cliente entra na base da loja para a Voltou recuperar a próxima compra."
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground transition hover:bg-muted"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="novoClienteForm"
+              className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+            >
+              Salvar cliente
+            </button>
+          </div>
+        }
       >
-        <form onSubmit={(e) => void handleNovoCliente(e)} className="space-y-4">
+        <form
+          id="novoClienteForm"
+          onSubmit={(e) => void handleNovoCliente(e)}
+          className="space-y-4"
+        >
           <div>
             <label htmlFor="novoNome" className="text-sm font-medium text-foreground">
               Nome
@@ -572,21 +594,6 @@ function ClientesPageInner() {
             </select>
           </div>
           ) : null}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium text-foreground transition hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-            >
-              Salvar cliente
-            </button>
-          </div>
         </form>
       </Modal>
 

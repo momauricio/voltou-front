@@ -47,7 +47,7 @@ export function OQueLevouField({
         onClick={() => setOpen((o) => !o)}
         className="flex h-11 w-full items-center text-left text-sm text-[#111e15]/70"
       >
-        {open ? '−' : '+'} O que ele levou (opcional)
+        {open ? '−' : '+'} O que o cliente levou (opcional)
       </button>
       <div id={panelId} hidden={!open}>
         <input
@@ -56,7 +56,7 @@ export function OQueLevouField({
           value={value}
           onChange={(e) => onChange(e.target.value.slice(0, LEVOU_MAX))}
           placeholder="Ex.: calça jeans"
-          aria-label="O que ele levou"
+          aria-label="O que o cliente levou"
           maxLength={LEVOU_MAX}
           autoFocus={autoFocus}
           disabled={disabled}
