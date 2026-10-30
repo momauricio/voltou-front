@@ -48,6 +48,8 @@ Every event is sent to **both** `window.dataLayer.push` and `posthog.capture(eve
 | `view_landing` | `page_path`, `referrer` |
 | `click_cta_criar_conta` | `cta_location`: `hero` \| `footer` \| `nav`, `page_path` |
 | `sign_up` | `method`: `email` \| `google` \| `whatsapp` |
+| `cadastro_lojista_iniciado` | `entry`: `link` \| `aba` \| `google`, `page_path` |
+| `cadastro_lojista_concluido` | `method`: `email` \| `google` |
 | `onboarding_step_complete` | `step`: 1–5, `step_name`: `cliente` \| `produto` \| `regras` \| `mercado_pago` \| `retirada` |
 | `onboarding_complete` | `steps_done`: 5 |
 | `checkout_created` | `store_id`, `order_id`, `amount_brl` |
@@ -55,5 +57,7 @@ Every event is sent to **both** `window.dataLayer.push` and `posthog.capture(eve
 | `commission_earned` | `store_id`, `order_id`, `amount_brl`, `commission_brl` |
 
 **Never** in dataLayer or PostHog: phone, WhatsApp, final customer name, merchant email, document/CNPJ.
+
+`cadastro_lojista_iniciado` fires when the merchant lands on the **Criar conta** tab in `/entrar`, at most once per browser session (sessionStorage). `entry` says how they got there: `link` (opened `/entrar?tab=criar`), `aba` (clicked the tab) or `google` (new Google account redirected to the signup tab); `page_path` is included. `cadastro_lojista_concluido` fires only after the API returned OK for account creation (`method`: `email` | `google`), right after `sign_up` — which still exists and still does the PostHog identify. Scoreboard goal: 3 active merchants; track it with the PostHog funnel `cadastro_lojista_iniciado` → `cadastro_lojista_concluido`.
 
 `commission_earned` is exported as a helper; there is no front webhook yet (payment/commission often complete server-side).

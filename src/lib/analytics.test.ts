@@ -17,6 +17,8 @@ import {
   pushDataLayer,
   resetAnalyticsSinksForTests,
   setAnalyticsSinks,
+  trackCadastroLojistaConcluido,
+  trackCadastroLojistaIniciado,
   trackCheckoutCreated,
   trackClickCtaCriarConta,
   trackCommissionEarned,
@@ -58,12 +60,14 @@ function withAnalytics<T>(
     captured: { event: string; properties: Record<string, unknown> }[],
     identified: string[],
   ) => T,
+  windowExtras: Record<string, unknown> = {},
 ): T {
   const pushed: Record<string, unknown>[] = [];
   const captured: { event: string; properties: Record<string, unknown> }[] = [];
   const identified: string[] = [];
   const previous = globalThis.window;
-  globalThis.window = { dataLayer: pushed } as unknown as Window & typeof globalThis;
+  globalThis.window = { dataLayer: pushed, ...windowExtras } as unknown as Window &
+    typeof globalThis;
   setAnalyticsSinks({
     capture: (event, properties) => captured.push({ event, properties }),
     identify: (id) => identified.push(id),
@@ -134,6 +138,8 @@ describe('dataLayer event taxonomy', () => {
       view_landing: 'view_landing',
       click_cta_criar_conta: 'click_cta_criar_conta',
       sign_up: 'sign_up',
+      cadastro_lojista_iniciado: 'cadastro_lojista_iniciado',
+      cadastro_lojista_concluido: 'cadastro_lojista_concluido',
       onboarding_step_complete: 'onboarding_step_complete',
       onboarding_complete: 'onboarding_complete',
       checkout_created: 'checkout_created',
@@ -273,6 +279,55 @@ describe('typed event helpers', () => {
     });
   });
 
+  it('pushes cadastro_lojista_iniciado/concluido without PII', () => {
+    withAnalytics((pushed, captured, identified) => {
+      trackCadastroLojistaIniciado('link');
+      trackCadastroLojistaConcluido('email');
+      trackCadastroLojistaConcluido('google');
+      assert.deepEqual(pushed, [
+        { event: 'cadastro_lojista_iniciado', entry: 'link', page_path: '/' },
+        { event: 'cadastro_lojista_concluido', method: 'email' },
+        { event: 'cadastro_lojista_concluido', method: 'google' },
+      ]);
+      assert.deepEqual(captured, [
+        {
+          event: 'cadastro_lojista_iniciado',
+          properties: { entry: 'link', page_path: '/' },
+        },
+        { event: 'cadastro_lojista_concluido', properties: { method: 'email' } },
+        { event: 'cadastro_lojista_concluido', properties: { method: 'google' } },
+      ]);
+      assert.deepEqual(Object.keys(captured[0]!.properties), ['entry', 'page_path']);
+      assert.deepEqual(Object.keys(captured[1]!.properties), ['method']);
+      assert.deepEqual(Object.keys(captured[2]!.properties), ['method']);
+      for (const row of captured) {
+        for (const key of Object.keys(row.properties)) {
+          assert.equal(isForbiddenDataLayerKey(key), false, key);
+        }
+      }
+      assert.equal(identified.length, 0);
+    });
+  });
+
+  it('fires cadastro_lojista_iniciado once per browser session', () => {
+    const store = new Map<string, string>();
+    const sessionStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+    };
+    withAnalytics(
+      (pushed, captured) => {
+        trackCadastroLojistaIniciado('aba');
+        trackCadastroLojistaIniciado('google');
+        assert.equal(pushed.length, 1);
+        assert.equal(captured.length, 1);
+        assert.equal(pushed[0]?.entry, 'aba');
+        assert.equal(pushed[0]?.page_path, '/entrar');
+      },
+      { sessionStorage, location: { pathname: '/entrar' } },
+    );
+  });
+
   it('documents that commission_earned has no front webhook yet', () => {
     assert.match(analyticsSrc, /TODO: commission_earned is confirmed server-side/);
   });
@@ -351,6 +406,25 @@ describe('front call-site wiring', () => {
     assert.match(auth, /store_id: result\.user\.storeId/);
     assert.doesNotMatch(auth, /trackSignUp\('email'.+email/);
     assert.match(hook, /applyOnboardingSnapshot/);
+  });
+
+  it('tracks cadastro_lojista_concluido only after the register / googleAuth OK', () => {
+    const auth = readFileSync(
+      new URL('../components/auth/auth-form.tsx', import.meta.url),
+      'utf8',
+    );
+    const register = auth.indexOf('await registerAccount(');
+    const emailDone = auth.indexOf("trackCadastroLojistaConcluido('email')");
+    assert.ok(register > -1 && emailDone > register);
+
+    const googleSignup = auth.indexOf('async function completeGoogleSignup');
+    const googleAuthCall = auth.indexOf('await googleAuth(', googleSignup);
+    const googleDone = auth.indexOf("trackCadastroLojistaConcluido('google')");
+    const googleSignupEnd = auth.indexOf('async function onSubmit');
+    assert.ok(googleSignup > -1 && googleAuthCall > googleSignup);
+    assert.ok(googleDone > googleAuthCall && googleDone < googleSignupEnd);
+
+    assert.match(auth, /trackCadastroLojistaIniciado\(/);
   });
 
   it('tracks checkout_created in staff CRM and payment_approved on brick + /obrigado', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GoogleContinueButton } from '@/components/auth/google-continue-button';
@@ -31,7 +31,12 @@ import {
   lojistaLoginOutcome,
   STAFF_LOGIN_PATH,
 } from '@/lib/staff-crm';
-import { trackSignUp } from '@/lib/analytics';
+import {
+  trackCadastroLojistaConcluido,
+  trackCadastroLojistaIniciado,
+  trackSignUp,
+  type CadastroLojistaEntry,
+} from '@/lib/analytics';
 
 type Tab = 'entrar' | 'criar';
 
@@ -78,6 +83,9 @@ function EyeOffIcon() {
 export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
+  const entryRef = useRef<CadastroLojistaEntry>(
+    initialTab === 'criar' ? 'link' : 'aba',
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -95,6 +103,10 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
   );
 
   const cnpjDigits = useMemo(() => stripCnpj(cnpj), [cnpj]);
+
+  useEffect(() => {
+    if (tab === 'criar') trackCadastroLojistaIniciado(entryRef.current);
+  }, [tab]);
 
   useEffect(() => {
     if (tab !== 'criar' || !isValidCnpj(cnpjDigits)) {
@@ -165,6 +177,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         }),
       );
       trackSignUp('google', { store_id: result.user.storeId });
+      trackCadastroLojistaConcluido('google');
       setPendingGoogleIdToken(null);
       await finishLojistaLogin(result);
     } catch (err) {
@@ -210,6 +223,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         }
         const result = await registerAccount(parsed.body);
         trackSignUp('email');
+        trackCadastroLojistaConcluido('email');
         router.push(
           `/verificar-email?email=${encodeURIComponent(result.email)}`,
         );
@@ -268,6 +282,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         setError(
           'Conta Google nova. Preencha WhatsApp, nome, loja e CNPJ e toque Continuar com Google de novo — ou Criar conta grátis.',
         );
+        entryRef.current = 'google';
         setTab('criar');
         return;
       }
@@ -303,6 +318,7 @@ export function AuthForm({ initialTab = 'entrar' }: { initialTab?: Tab }) {
         <button
           type="button"
           onClick={() => {
+            entryRef.current = 'aba';
             setTab('criar');
             setPassword('');
             setShowPassword(false);

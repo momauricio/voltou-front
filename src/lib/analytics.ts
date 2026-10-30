@@ -33,6 +33,8 @@ export const ANALYTICS_EVENTS = {
   view_landing: 'view_landing',
   click_cta_criar_conta: 'click_cta_criar_conta',
   sign_up: 'sign_up',
+  cadastro_lojista_iniciado: 'cadastro_lojista_iniciado',
+  cadastro_lojista_concluido: 'cadastro_lojista_concluido',
   onboarding_step_complete: 'onboarding_step_complete',
   onboarding_complete: 'onboarding_complete',
   checkout_created: 'checkout_created',
@@ -45,6 +47,8 @@ export type AnalyticsEventName =
 
 export type CtaLocation = 'hero' | 'footer' | 'nav';
 export type SignUpMethod = 'email' | 'google' | 'whatsapp';
+/** link = /entrar?tab=criar; aba = clicked "Criar conta"; google = new Google account sent to criar. */
+export type CadastroLojistaEntry = 'link' | 'aba' | 'google';
 export type OnboardingStepNumber = 1 | 2 | 3 | 4 | 5;
 export type OnboardingStepName =
   | 'cliente'
@@ -205,6 +209,27 @@ export function trackSignUp(
   identifyAfterSignup(input?.store_id);
   pushDataLayer({
     event: ANALYTICS_EVENTS.sign_up,
+    method,
+  });
+}
+
+/** Fires once per browser session when the "Criar conta" tab is shown. */
+export function trackCadastroLojistaIniciado(entry: CadastroLojistaEntry): void {
+  const page_path =
+    typeof window !== 'undefined' ? window.location?.pathname ?? '/' : '/';
+  trackOnce(ANALYTICS_EVENTS.cadastro_lojista_iniciado, () =>
+    pushDataLayer({
+      event: ANALYTICS_EVENTS.cadastro_lojista_iniciado,
+      entry,
+      page_path,
+    }),
+  );
+}
+
+/** Call after trackSignUp (which already identifies) once the API returned OK. */
+export function trackCadastroLojistaConcluido(method: SignUpMethod): void {
+  pushDataLayer({
+    event: ANALYTICS_EVENTS.cadastro_lojista_concluido,
     method,
   });
 }
