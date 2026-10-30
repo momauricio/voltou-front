@@ -22,12 +22,14 @@ export function Modal({
   size = 'md',
   footer,
 }: ModalProps) {
-  const vvHeight = useVisualViewportHeight(open && Boolean(footer));
+  const hasFooter = Boolean(footer);
+  const vv = useVisualViewport(open && hasFooter);
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/40"
+      className={`fixed inset-0 ${hasFooter ? 'z-[60]' : 'z-50'} overflow-y-auto overscroll-contain bg-black/40`}
+      style={vv ? { top: vv.top, height: vv.height, bottom: 'auto' } : undefined}
       onClick={onClose}
     >
       <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
@@ -36,8 +38,8 @@ export function Modal({
           aria-modal="true"
           onClick={(e) => e.stopPropagation()}
           style={
-            vvHeight != null
-              ? { maxHeight: `min(90dvh, 880px, ${Math.max(vvHeight - 32, 0)}px)` }
+            vv
+              ? { maxHeight: `min(90dvh, 880px, ${Math.max(vv.height - 32, 0)}px)` }
               : undefined
           }
           className={`flex max-h-[min(90dvh,880px)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] ${
@@ -78,10 +80,11 @@ export function Modal({
 }
 
 /**
- * Altura do visualViewport (encolhe com o teclado virtual) enquanto `enabled`.
- * Retorna null quando desativado, no SSR ou sem suporte — sem listeners.
+ * Altura e offsetTop do visualViewport (o teclado virtual do iOS encolhe só o
+ * visual viewport) enquanto `enabled`. Retorna null quando desativado, no SSR
+ * ou sem suporte — sem listeners.
  */
-function useVisualViewportHeight(enabled: boolean): number | null {
+function useVisualViewport(enabled: boolean): { height: number; top: number } | null {
   const subscribe = useCallback(
     (onChange: () => void) => {
       const vv = enabled && typeof window !== 'undefined' ? window.visualViewport : null;
@@ -95,7 +98,13 @@ function useVisualViewportHeight(enabled: boolean): number | null {
     },
     [enabled],
   );
-  const getSnapshot = () =>
-    enabled && typeof window !== 'undefined' ? (window.visualViewport?.height ?? null) : null;
-  return useSyncExternalStore(subscribe, getSnapshot, () => null);
+  // Snapshot primitivo ("altura:top") para manter igualdade estável entre leituras.
+  const getSnapshot = () => {
+    const vv = enabled && typeof window !== 'undefined' ? window.visualViewport : null;
+    return vv ? `${vv.height}:${vv.offsetTop}` : null;
+  };
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  if (snapshot == null) return null;
+  const [height, top] = snapshot.split(':').map(Number);
+  return { height, top };
 }
