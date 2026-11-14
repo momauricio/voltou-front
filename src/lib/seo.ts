@@ -3,7 +3,9 @@
  * Home title, description and entity copy are Marketing-locked in seo-copy.ts.
  */
 
+import { LANDING_FAQ, type LandingFaqItem } from './landing-copy.ts';
 import {
+  FORBIDDEN_HOME_SEO,
   HOME_DESCRIPTION,
   HOME_OFFER_TERMS,
   HOME_TITLE,
@@ -33,7 +35,7 @@ export const NO_INDEX_ROBOTS = { index: false, follow: false } as const;
  * Prefix paths without a trailing slash so `/painel` matches `/painel` and
  * `/painel/foo`. Keep `/p/` slashed so it does not prefix-match `/painel`.
  */
-const ROBOTS_DISALLOW = [
+export const ROBOTS_DISALLOW = [
   '/painel',
   '/equipe',
   '/api',
@@ -47,11 +49,63 @@ const ROBOTS_DISALLOW = [
   '/p/',
 ] as const;
 
+/**
+ * AI crawlers / agents that get an explicit allow group in robots.txt.
+ * A crawler that matches a named group ignores the `*` group, so every group
+ * repeats ROBOTS_DISALLOW. Bytespider is intentionally not listed: it is a
+ * bulk training crawler with no user-facing answer surface; it still falls
+ * under the `*` group like any other bot.
+ */
+export const AI_AGENT_USER_AGENTS = [
+  'GPTBot',
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'ClaudeBot',
+  'Claude-User',
+  'Claude-SearchBot',
+  'anthropic-ai',
+  'PerplexityBot',
+  'Perplexity-User',
+  'Google-Extended',
+  'Applebot-Extended',
+  'CCBot',
+] as const;
+
+export const LLMS_TXT_PATH = '/llms.txt';
+export const LLMS_FULL_TXT_PATH = '/llms-full.txt';
+
+/** Public URLs only — never add a ROBOTS_DISALLOW path here. */
+export const PUBLIC_PATHS = ['/', LLMS_TXT_PATH, LLMS_FULL_TXT_PATH] as const;
+
+/**
+ * Forbidden on every agent-readable surface (llms*.txt, JSON-LD): the
+ * Marketing lock plus the extra words that must never leave the FAQ.
+ */
+export const AGENT_SURFACE_FORBIDDEN: readonly RegExp[] = [
+  ...FORBIDDEN_HOME_SEO,
+  /puxar/i,
+  /VIP/i,
+  /robô/i,
+  /sem pagar nada/i,
+];
+
+export function isAgentSafe(text: string): boolean {
+  return !AGENT_SURFACE_FORBIDDEN.some((pattern) => pattern.test(text));
+}
+
+/** Visible FAQ items that may be repeated on agent surfaces (drops e.g. the 5% line). */
+export function agentSafeFaq(): LandingFaqItem[] {
+  return LANDING_FAQ.filter((item) => isAgentSafe(item.q) && isAgentSafe(item.a));
+}
+
 export const HOME_METADATA = {
   title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
   alternates: {
     canonical: '/',
+    types: {
+      'text/plain': LLMS_TXT_PATH,
+    },
   },
   openGraph: {
     type: 'website' as const,
@@ -68,12 +122,17 @@ export const HOME_METADATA = {
   },
 };
 
-export const HOME_JSON_LD = {
-  '@context': 'https://schema.org',
-  '@graph': [
+const ORG_ID = `${SITE_URL}/#organization`;
+const WEBSITE_ID = `${SITE_URL}/#website`;
+const APP_ID = `${SITE_URL}/#app`;
+const FAQ_ID = `${SITE_URL}/#faq`;
+
+export function buildHomeJsonLd() {
+  const faq = agentSafeFaq();
+  const graph: Record<string, unknown>[] = [
     {
       '@type': 'Organization',
-      '@id': `${SITE_URL}/#organization`,
+      '@id': ORG_ID,
       name: SITE_NAME,
       url: SITE_URL,
       description: HOME_DESCRIPTION,
@@ -82,31 +141,61 @@ export const HOME_JSON_LD = {
     },
     {
       '@type': 'WebSite',
-      '@id': `${SITE_URL}/#website`,
+      '@id': WEBSITE_ID,
       name: SITE_NAME,
       url: SITE_URL,
       inLanguage: 'pt-BR',
       description: HOME_DESCRIPTION,
-      publisher: { '@id': `${SITE_URL}/#organization` },
+      publisher: { '@id': ORG_ID },
+      about: { '@id': APP_ID },
     },
     {
       '@type': 'SoftwareApplication',
-      '@id': `${SITE_URL}/#app`,
+      '@id': APP_ID,
       name: SITE_NAME,
       url: SITE_URL,
       description: HOME_DESCRIPTION,
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       inLanguage: 'pt-BR',
+      publisher: { '@id': ORG_ID },
+      audience: {
+        '@type': 'BusinessAudience',
+        audienceType: 'Lojas físicas de roupa e calçado',
+      },
+      // No numeric price: the copy states the model, not an amount.
       offers: {
         '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'BRL',
         description: HOME_OFFER_TERMS,
+        url: SITE_URL,
+        seller: { '@id': ORG_ID },
       },
     },
-  ],
-};
+  ];
+  if (faq.length > 0) {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': FAQ_ID,
+      url: SITE_URL,
+      inLanguage: 'pt-BR',
+      isPartOf: { '@id': WEBSITE_ID },
+      about: { '@id': APP_ID },
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    });
+  }
+  return { '@context': 'https://schema.org', '@graph': graph };
+}
+
+export const HOME_JSON_LD = buildHomeJsonLd();
+
+/** Serialized for a <script type="application/ld+json">; escapes "<" against breakout. */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
 
 export function noIndexMetadata(title?: string) {
   return title
@@ -115,12 +204,12 @@ export function noIndexMetadata(title?: string) {
 }
 
 export function siteRobots() {
+  const disallow = [...ROBOTS_DISALLOW];
   return {
-    rules: {
-      userAgent: '*',
-      allow: '/',
-      disallow: [...ROBOTS_DISALLOW],
-    },
+    rules: [
+      { userAgent: '*', allow: '/', disallow },
+      { userAgent: [...AI_AGENT_USER_AGENTS], allow: '/', disallow: [...disallow] },
+    ],
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
   };
@@ -132,6 +221,16 @@ export function siteSitemap() {
       url: `${SITE_URL}/`,
       changeFrequency: 'weekly' as const,
       priority: 1,
+    },
+    {
+      url: `${SITE_URL}${LLMS_TXT_PATH}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}${LLMS_FULL_TXT_PATH}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
     },
   ];
 }

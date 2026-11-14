@@ -136,24 +136,24 @@ describe('GEO JSON-LD', () => {
     assert.equal(HOME_JSON_LD['@context'], 'https://schema.org');
     const graph = HOME_JSON_LD['@graph'];
     assert.ok(Array.isArray(graph));
-    const types = graph.map((node: { '@type': string }) => node['@type']);
-    assert.deepEqual(types.sort(), [
+    const types = graph.map((node) => node['@type'] as string);
+    assert.deepEqual([...types].sort(), [
+      'FAQPage',
       'Organization',
       'SoftwareApplication',
       'WebSite',
     ]);
-    assert.ok(!types.includes('FAQPage'));
     assert.match(home, /HOME_JSON_LD/);
     assert.match(home, /application\/ld\+json/);
 
-    for (const node of graph) {
+    for (const node of graph.filter((n) => n['@type'] !== 'FAQPage')) {
       assert.equal(node.name, 'Voltou');
       assert.equal(node.url, SITE_URL);
       assert.equal(node.description, HOME_DESCRIPTION);
     }
 
     const organization = graph.find(
-      (node: { '@type': string }) => node['@type'] === 'Organization',
+      (node) => node['@type'] === 'Organization',
     ) as { logo?: string; slogan?: string };
     assert.equal(organization.logo, 'https://www.voltouapp.com/icon-512.png');
     assert.equal(organization.slogan, 'Especialista na 2ª venda.');
@@ -161,11 +161,11 @@ describe('GEO JSON-LD', () => {
 });
 
 describe('robots, sitemap and noindex', () => {
-  it('lists only the public home in the sitemap', () => {
+  it('lists only the public home and llms files in the sitemap', () => {
     const entries = siteSitemap();
     assert.deepEqual(
       entries.map((entry) => entry.url),
-      [`${SITE_URL}/`],
+      [`${SITE_URL}/`, `${SITE_URL}/llms.txt`, `${SITE_URL}/llms-full.txt`],
     );
     assert.match(sitemapRoute, /siteSitemap/);
   });
@@ -173,24 +173,25 @@ describe('robots, sitemap and noindex', () => {
   it('disallows private, auth and transactional paths in robots.txt', () => {
     const robots = siteRobots();
     assert.equal(robots.sitemap, `${SITE_URL}/sitemap.xml`);
-    const disallow = robots.rules.disallow;
-    assert.ok(Array.isArray(disallow));
-    for (const path of [
-      '/painel',
-      '/equipe',
-      '/api',
-      '/entrar',
-      '/esqueci-senha',
-      '/redefinir-senha',
-      '/verificar-email',
-      '/loja',
-      '/obrigado',
-      '/aguardando',
-      '/p/',
-    ]) {
-      assert.ok(disallow.includes(path), `robots must disallow ${path}`);
+    for (const { disallow } of robots.rules) {
+      assert.ok(Array.isArray(disallow));
+      for (const path of [
+        '/painel',
+        '/equipe',
+        '/api',
+        '/entrar',
+        '/esqueci-senha',
+        '/redefinir-senha',
+        '/verificar-email',
+        '/loja',
+        '/obrigado',
+        '/aguardando',
+        '/p/',
+      ]) {
+        assert.ok(disallow.includes(path), `robots must disallow ${path}`);
+      }
+      assert.ok(!disallow.includes('/p'), '/p would prefix-match /painel');
     }
-    assert.ok(!disallow.includes('/p'), '/p would prefix-match /painel');
     assert.match(robotsRoute, /siteRobots/);
   });
 

@@ -1,21 +1,7 @@
 'use client';
 
 import { useInView } from '@/components/landing/use-in-view';
-
-const ANGLES = [
-  {
-    title: 'Os dois',
-    body: 'Quem levou a peça. Quem experimentou, gostou, deixou o número. Os dois já passaram no seu balcão. A Voltou oferece a condição e fecha. Lucro em cima de quem já entrou na sua loja.',
-  },
-  {
-    title: 'cupom personalizado para o cliente',
-    body: 'Tem cupom personalizado para o cliente e uma condição especial. Atendimento requintado. A Voltou fecha a 2ª venda. Você lucra. A loja continua sendo a da sua cliente.',
-  },
-  {
-    title: 'Já está na arara',
-    body: 'A peça já está no estoque. Paga. Parada na arara. Você atende a fila. A Voltou fecha a 2ª venda. Lucro em cima do que você já tem, sem sair do balcão.',
-  },
-] as const;
+import { LANDING_ANGLES } from '@/lib/landing-copy';
 
 export function LandingAngles() {
   const { ref, inView } = useInView<HTMLElement>();
@@ -31,7 +17,7 @@ export function LandingAngles() {
           inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         } transition duration-700`}
       >
-        {ANGLES.map((angle) => (
+        {LANDING_ANGLES.map((angle) => (
           <article
             key={angle.title}
             className="rounded-2xl border border-border bg-card p-6 text-left shadow-[var(--shadow-soft)] sm:p-7"

@@ -2,21 +2,18 @@
 
 import { LandingFeatureRow } from '@/components/landing/landing-feature-row';
 import { PricingChipsMock } from '@/components/landing/mocks/pricing-chips-mock';
+import { LANDING_PRICING } from '@/lib/landing-copy';
 
 export function LandingPricing() {
   return (
     <LandingFeatureRow
       id="preco"
-      title="Sem mensalidade. Sem cartão. Você só paga se a venda entrar."
+      title={LANDING_PRICING.title}
       body={
         <>
-          <span className="block">
-            A Voltou só ganha comissão quando recupera uma venda que não
-            aconteceria sozinha. Se o cliente não pagar, você não paga a gente.
-            Conta grátis pra começar — sem taxa fixa pra manter aberta.
-          </span>
+          <span className="block">{LANDING_PRICING.paragraphs[0]}</span>
           <span className="mt-4 block text-sm sm:text-base">
-            Não é custo de ferramenta. É divisão só no resultado.
+            {LANDING_PRICING.paragraphs[1]}
           </span>
         </>
       }

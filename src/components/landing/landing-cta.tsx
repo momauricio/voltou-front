@@ -2,6 +2,7 @@
 
 import { useInView } from '@/components/landing/use-in-view';
 import { trackClickCtaCriarConta } from '@/lib/analytics';
+import { LANDING_DATA_PRIVACY } from '@/lib/landing-copy';
 import { HOME_CTA_HREF, HOME_CTA_LABEL } from '@/lib/seo-copy';
 
 export function LandingCta() {
@@ -35,8 +36,7 @@ export function LandingCta() {
           Leva ~2 minutos · sem mensalidade · sem cartão
         </p>
         <p className="relative mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-background/45">
-          Os dados dos clientes da sua loja não são vendidos nem compartilhados
-          com terceiros para marketing.
+          {LANDING_DATA_PRIVACY}
         </p>
       </div>
     </section>

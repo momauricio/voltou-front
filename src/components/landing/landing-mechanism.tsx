@@ -2,6 +2,7 @@
 
 import { JourneyStrip } from '@/components/landing/mocks/journey-strip';
 import { useInView } from '@/components/landing/use-in-view';
+import { LANDING_MECHANISM } from '@/lib/landing-copy';
 
 export function LandingMechanism() {
   const { ref, inView } = useInView<HTMLElement>();
@@ -19,16 +20,14 @@ export function LandingMechanism() {
               inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
-            Como funciona na prática
+            {LANDING_MECHANISM.title}
           </h2>
           <p
             className={`mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg transition duration-700 delay-100 ${
               inView ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
             }`}
           >
-            Você cadastra nome e contato no balcão. O time e a IA da Voltou
-            entram em contato e fecham a 2ª venda. Quando o cliente paga, o
-            dinheiro cai e você recebe o aviso pra preparar a entrega.
+            {LANDING_MECHANISM.body}
           </p>
         </div>
 

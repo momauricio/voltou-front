@@ -1,27 +1,6 @@
 'use client';
 
-const STEPS = [
-  {
-    n: '1',
-    title: 'Você cadastra no balcão',
-    body: 'Nome, contato e o que a pessoa comprou ou quis — uns 30 segundos.',
-  },
-  {
-    n: '2',
-    title: 'A Voltou vende de novo',
-    body: 'Time e IA chamam com o produto certo e um cupom personalizado para o cliente.',
-  },
-  {
-    n: '3',
-    title: 'O cliente paga no link',
-    body: 'Você não fica cobrando. Quando paga, o dinheiro cai pra você.',
-  },
-  {
-    n: '4',
-    title: 'Você só prepara a entrega',
-    body: 'Recebe o aviso do pedido e entrega — retirada ou envio.',
-  },
-] as const;
+import { LANDING_JOURNEY_STEPS as STEPS } from '@/lib/landing-copy';
 
 export function JourneyStrip() {
   return (

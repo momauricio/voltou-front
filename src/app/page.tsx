@@ -9,7 +9,7 @@ import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingViewTracker } from '@/components/landing/landing-view-tracker';
 import { LandingPricing } from '@/components/landing/landing-pricing';
 import { LandingWhatsappMock } from '@/components/landing/landing-whatsapp-mock';
-import { HOME_JSON_LD, HOME_METADATA } from '@/lib/seo';
+import { HOME_JSON_LD, HOME_METADATA, serializeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = HOME_METADATA;
 
@@ -19,7 +19,7 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(HOME_JSON_LD).replace(/</g, '\\u003c'),
+          __html: serializeJsonLd(HOME_JSON_LD),
         }}
       />
       <LandingViewTracker />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useInView } from '@/components/landing/use-in-view';
+import { LANDING_ICP } from '@/lib/landing-copy';
 
 export function LandingIcp() {
   const { ref, inView } = useInView<HTMLElement>();
@@ -17,7 +18,7 @@ export function LandingIcp() {
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
-          Pra loja física que perde a segunda venda
+          {LANDING_ICP.title}
         </h2>
       </div>
 
@@ -27,26 +28,16 @@ export function LandingIcp() {
             inView ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
-          <p className="text-sm font-semibold text-primary">Faz sentido se</p>
+          <p className="text-sm font-semibold text-primary">{LANDING_ICP.fitLabel}</p>
           <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground sm:text-[15px]">
-            <li className="flex gap-2.5">
-              <span className="mt-0.5 text-primary" aria-hidden>
-                ✓
-              </span>
-              Você tem loja física — calçado, moda, acessórios, presente
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-0.5 text-primary" aria-hidden>
-                ✓
-              </span>
-              Na venda, você anota nome e contato do cliente
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-0.5 text-primary" aria-hidden>
-                ✓
-              </span>
-              Não sobra gente pra chamar o cliente de volta depois da venda
-            </li>
+            {LANDING_ICP.fit.map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <span className="mt-0.5 text-primary" aria-hidden>
+                  ✓
+                </span>
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -56,27 +47,17 @@ export function LandingIcp() {
           }`}
         >
           <p className="text-sm font-semibold text-muted-foreground">
-            Provavelmente não, se
+            {LANDING_ICP.notFitLabel}
           </p>
           <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-            <li className="flex gap-2.5">
-              <span className="mt-0.5" aria-hidden>
-                —
-              </span>
-              Só vende em marketplace e não tem o contato do cliente
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-0.5" aria-hidden>
-                —
-              </span>
-              Quer mandar a mesma mensagem pra todo mundo
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-0.5" aria-hidden>
-                —
-              </span>
-              Precisa de ERP ou PDV fiscal — isso não é o nosso foco
-            </li>
+            {LANDING_ICP.notFit.map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <span className="mt-0.5" aria-hidden>
+                  —
+                </span>
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
       </div>

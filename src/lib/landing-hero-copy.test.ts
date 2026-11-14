@@ -9,7 +9,8 @@ const landingDir = join(here, '../components/landing');
 const page = readFileSync(join(here, '../app/page.tsx'), 'utf8');
 const hero = readFileSync(join(landingDir, 'landing-hero.tsx'), 'utf8');
 const nav = readFileSync(join(landingDir, 'landing-nav.tsx'), 'utf8');
-const faq = readFileSync(join(landingDir, 'landing-faq.tsx'), 'utf8');
+// FAQ items live in the shared landing copy module rendered by landing-faq.tsx.
+const faq = readFileSync(join(here, 'landing-copy.ts'), 'utf8');
 const cta = readFileSync(join(landingDir, 'landing-cta.tsx'), 'utf8');
 const brand = readFileSync(join(landingDir, 'landing-brand.tsx'), 'utf8');
 
@@ -23,6 +24,7 @@ function walkTsx(dir: string): string[] {
 
 const homeSource = [
   join(here, '../app/page.tsx'),
+  join(here, 'landing-copy.ts'),
   ...walkTsx(landingDir),
 ]
   .map((path) => readFileSync(path, 'utf8'))

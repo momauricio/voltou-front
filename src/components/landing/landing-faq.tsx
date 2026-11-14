@@ -2,38 +2,8 @@
 
 import { useState } from 'react';
 import { useInView } from '@/components/landing/use-in-view';
+import { LANDING_FAQ } from '@/lib/landing-copy';
 
-/**
- * FAQ alinhado ao ICP (loja física / contato feito pela Voltou / só comissão) e às objeções
- * mais comuns no Linear (doc 01 — Visão & ICP + princípios do produto).
- * Ajuste fino comercial: validar com o dono antes de tratar como policy legal.
- */
-const FAQ_ITEMS = [
-  {
-    q: 'Quem fala com o cliente?',
-    a: 'O time e a IA da Voltou. Você só cadastra nome e contato no balcão. Você não dispara a mensagem.',
-  },
-  {
-    q: 'Como funciona a comissão? Vocês processam o pagamento?',
-    a: 'O cliente paga no link da sua loja (hoje pelo Mercado Pago; outras formas de checkout vão entrar depois). O dinheiro da venda vai pra você. A Voltou só fica com a comissão quando essa venda recuperada entra. Sem mensalidade e sem cartão pra abrir a conta.',
-  },
-  {
-    q: 'Qual a porcentagem de comissão?',
-    a: '5% sobre o valor dos produtos da venda recuperada. Frete não entra na base da comissão. Se o cliente não pagar, você não paga comissão.',
-  },
-  {
-    q: 'E se o cliente não quiser mais receber mensagem?',
-    a: 'Se o cliente pedir pra parar, a gente respeita. Ele deixa de receber ofertas da loja por aqui — sem insistir, sem mandar de novo “só mais uma vez”.',
-  },
-  {
-    q: 'Vocês vendem ou compartilham os dados dos meus clientes?',
-    a: 'Não. Nome, telefone e o que a pessoa comprou ficam pra recuperar a venda e avisar pedido. Não vendemos lista de clientes e não passamos esses dados pra terceiros fazerem marketing. Quem faz o contato é o time e a IA da Voltou.',
-  },
-  {
-    q: 'Preciso entender de tecnologia pra usar?',
-    a: 'Não. No balcão você anota nome, contato e o que a pessoa comprou (ou quis) em cerca de 30 segundos. O restante — quando chamar, o que oferecer e o link de pagamento — a Voltou cuida. Não precisa de sistema de caixa nem de equipe de TI.',
-  },
-] as const;
 
 export function LandingFaq() {
   const { ref, inView } = useInView<HTMLElement>();
@@ -59,7 +29,7 @@ export function LandingFaq() {
             inView ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >
-          {FAQ_ITEMS.map((item, i) => {
+          {LANDING_FAQ.map((item, i) => {
             const isOpen = open === i;
             return (
               <div key={item.q}>
