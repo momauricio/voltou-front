@@ -1,7 +1,8 @@
 /**
  * /llms.txt and /llms-full.txt (https://llmstxt.org) built from the same
  * copy the public home renders. Public pages only; every sentence goes through
- * isAgentSafe so Marketing-locked words never reach agents.
+ * isAgentSafe so Marketing-locked words never reach agents. The FAQ section is
+ * the visible FAQ verbatim (agentSafeFaq), incl. the approved 5% commission Q&A.
  */
 
 import {

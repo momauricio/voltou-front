@@ -93,9 +93,44 @@ export function isAgentSafe(text: string): boolean {
   return !AGENT_SURFACE_FORBIDDEN.some((pattern) => pattern.test(text));
 }
 
-/** Visible FAQ items that may be repeated on agent surfaces (drops e.g. the 5% line). */
+/**
+ * The one visible FAQ Q&A that may carry an otherwise forbidden term (the 5%
+ * commission) on agent surfaces. Approved by Mauricio on 2026-11-14 15:22.
+ * Matched by exact question; its text is always the live LANDING_FAQ copy.
+ */
+export const APPROVED_COMMISSION_FAQ_Q = 'Qual a porcentagem de comissão?';
+
+function findApprovedCommissionFaq(): LandingFaqItem {
+  const item = LANDING_FAQ.find((i) => i.q === APPROVED_COMMISSION_FAQ_Q);
+  if (!item) throw new Error(`LANDING_FAQ is missing "${APPROVED_COMMISSION_FAQ_Q}"`);
+  return item;
+}
+
+export const APPROVED_COMMISSION_FAQ: LandingFaqItem = findApprovedCommissionFaq();
+
+/**
+ * Removes the exact approved commission question and answer strings, so the
+ * forbidden-word scan still applies to everything else. Any edit to that Q&A
+ * that is not mirrored in LANDING_FAQ stops matching and gets scanned again.
+ */
+export function withoutApprovedFaq(text: string): string {
+  return text
+    .split(APPROVED_COMMISSION_FAQ.a)
+    .join('')
+    .split(APPROVED_COMMISSION_FAQ.q)
+    .join('');
+}
+
+/**
+ * Visible FAQ items repeated on agent surfaces (FAQPage JSON-LD, llms-full.txt):
+ * same array, same order, word for word. Only the approved commission Q&A is
+ * exempt from the forbidden list; any other item that hits it is dropped.
+ */
 export function agentSafeFaq(): LandingFaqItem[] {
-  return LANDING_FAQ.filter((item) => isAgentSafe(item.q) && isAgentSafe(item.a));
+  return LANDING_FAQ.filter(
+    (item) =>
+      isAgentSafe(withoutApprovedFaq(item.q)) && isAgentSafe(withoutApprovedFaq(item.a)),
+  );
 }
 
 export const HOME_METADATA = {

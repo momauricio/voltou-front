@@ -88,7 +88,8 @@ export const LANDING_DATA_PRIVACY =
  * mais comuns no Linear (doc 01 — Visão & ICP + princípios do produto).
  * Ajuste fino comercial: validar com o dono antes de tratar como policy legal.
  * Rendered by landing-faq.tsx; also feeds FAQPage JSON-LD and llms-full.txt
- * (minus items that hit the agent-surface forbidden list, e.g. the 5% line).
+ * word for word; the 5% item is the only one exempt from the agent-surface
+ * forbidden list (see APPROVED_COMMISSION_FAQ in seo.ts).
  */
 export const LANDING_FAQ = [
   {

@@ -14,6 +14,7 @@ import {
   HOME_TITLE_OG,
   SITE_NAME,
   SITE_URL,
+  APPROVED_COMMISSION_FAQ,
   noIndexMetadata,
   siteRobots,
   siteSitemap,
@@ -59,8 +60,26 @@ function seoSurfaceText(): string {
     HOME_METADATA.openGraph?.description,
     HOME_METADATA.twitter?.title,
     HOME_METADATA.twitter?.description,
-    JSON.stringify(HOME_JSON_LD),
+    JSON.stringify(jsonLdWithoutApprovedFaq()),
   ].join('\n');
+}
+
+/**
+ * JSON-LD with the single approved FAQ item (5% commission, approved
+ * 2026-11-14) removed from FAQPage.mainEntity; everything else is scanned.
+ */
+function jsonLdWithoutApprovedFaq() {
+  const graph = HOME_JSON_LD['@graph'].map((node) => {
+    if (node['@type'] !== 'FAQPage') return node;
+    const items = node.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
+    const kept = items.filter(
+      (q) =>
+        !(q.name === APPROVED_COMMISSION_FAQ.q && q.acceptedAnswer.text === APPROVED_COMMISSION_FAQ.a),
+    );
+    assert.equal(kept.length, items.length - 1, 'approved FAQ item must be present exactly once');
+    return { ...node, mainEntity: kept };
+  });
+  return { ...HOME_JSON_LD, '@graph': graph };
 }
 
 describe('locked home SEO copy', () => {

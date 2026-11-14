@@ -9,8 +9,10 @@ import {
   HOME_METADATA,
   PUBLIC_PATHS,
   ROBOTS_DISALLOW,
+  APPROVED_COMMISSION_FAQ,
   SITE_URL,
   agentSafeFaq,
+  withoutApprovedFaq,
   serializeJsonLd,
   siteRobots,
   siteSitemap,
@@ -25,6 +27,10 @@ const llmsFullRoute = read('../app/llms-full.txt/route.ts');
 
 /** The words the brief bans from every agent surface. */
 const BANNED = [/puxar/i, /VIP/i, /5%/, /robô/i, /disparo/i, /sem pagar nada/i];
+
+const COMMISSION_Q = 'Qual a porcentagem de comissão?';
+const COMMISSION_A =
+  '5% sobre o valor dos produtos da venda recuperada. Frete não entra na base da comissão. Se o cliente não pagar, você não paga comissão.';
 
 const PRIVATE_PREFIXES = [
   '/painel',
@@ -144,7 +150,7 @@ describe('llms.txt and llms-full.txt', () => {
       assert.match(text, /^- \[[^\]]+\]\(https:\/\/www\.voltouapp\.com\/[^)]*\): \S/m);
     });
 
-    it(`${name} has no private paths and no banned words`, () => {
+    it(`${name} has no private paths and no banned words outside the approved FAQ Q&A`, () => {
       const text = build();
       for (const url of urlsIn(text)) {
         assert.equal(url.origin, SITE_URL);
@@ -153,18 +159,56 @@ describe('llms.txt and llms-full.txt', () => {
       for (const prefix of PRIVATE_PREFIXES) {
         assert.ok(!text.includes(prefix), `${name} mentions ${prefix}`);
       }
+      // Strip exactly one "### Q\n\nA" block (the approved commission item).
+      const approvedBlock = `### ${COMMISSION_Q}\n\n${COMMISSION_A}\n`;
+      const rest = text.replace(approvedBlock, '');
       for (const pattern of BANNED) {
-        assert.doesNotMatch(text, pattern);
+        assert.doesNotMatch(rest, pattern, `${name} leaks ${pattern} outside the approved FAQ`);
       }
     });
   }
 
-  it('llms-full carries the visible guarantee and the agent-safe FAQ', () => {
+  it('llms.txt has no FAQ text and no 5%', () => {
+    const short = buildLlmsTxt();
+    assert.doesNotMatch(short, /5%/);
+    for (const item of LANDING_FAQ) {
+      assert.ok(!short.includes(item.q), `llms.txt repeats FAQ question "${item.q}"`);
+      assert.ok(!short.includes(item.a), `llms.txt repeats FAQ answer "${item.q}"`);
+    }
+  });
+
+  it('llms-full carries the approved 5% commission Q&A once, word for word', () => {
+    const full = buildLlmsFullTxt();
+    const block = `### ${COMMISSION_Q}\n\n${COMMISSION_A}\n`;
+    assert.ok(full.includes(block));
+    assert.equal(full.split('5%').length - 1, 1, '5% must appear only in the approved answer');
+    assert.equal(full.split(COMMISSION_A).length - 1, 1);
+  });
+
+  it('llms-full FAQ section lists all visible FAQ items in the same order', () => {
+    const full = buildLlmsFullTxt();
+    const section = full.slice(full.indexOf('## Perguntas frequentes\n'));
+    const expected = LANDING_FAQ.map((i) => `### ${i.q}\n\n${i.a}\n`).join('\n');
+    assert.ok(section.startsWith(`## Perguntas frequentes\n\n${expected}`));
+  });
+
+  it('the 5% allowance is narrow: only the exact approved Q&A is exempt', () => {
+    assert.equal(APPROVED_COMMISSION_FAQ.q, COMMISSION_Q);
+    assert.equal(APPROVED_COMMISSION_FAQ.a, COMMISSION_A);
+    assert.equal(withoutApprovedFaq(`${COMMISSION_Q} ${COMMISSION_A}`).trim(), '');
+    // Anything else with 5% is still caught.
+    assert.match(withoutApprovedFaq('Comissão de 5% na venda.'), /5%/);
+    assert.match(withoutApprovedFaq(`${COMMISSION_A} Agora com 5% off.`), /5%/);
+    assert.match(withoutApprovedFaq(COMMISSION_A.replace('Frete', 'O frete')), /5%/);
+  });
+
+  it('llms-full carries the visible guarantee and the full visible FAQ', () => {
     const full = buildLlmsFullTxt();
     assert.ok(full.includes(LANDING_GUARANTEE));
     assert.ok(ctaComponent.includes(LANDING_GUARANTEE), 'CTA guarantee drifted from landing-copy');
     assert.ok(homePage.includes(LANDING_GUARANTEE), 'footer guarantee drifted from landing-copy');
-    for (const item of agentSafeFaq()) {
+    assert.equal(agentSafeFaq().length, 6);
+    for (const item of LANDING_FAQ) {
       assert.ok(full.includes(`### ${item.q}`));
       assert.ok(full.includes(item.a));
     }
@@ -213,23 +257,42 @@ describe('home JSON-LD graph', () => {
     assert.equal('price' in offer, false);
     const json = JSON.stringify(parsed);
     assert.doesNotMatch(json, /aggregateRating|"review"/);
-    for (const pattern of BANNED) assert.doesNotMatch(json, pattern);
+  });
+
+  it('has no banned words in non-FAQ nodes, nor in FAQPage outside the approved Q&A', () => {
+    const nonFaq = JSON.stringify(parsed['@graph'].filter((n) => n['@type'] !== 'FAQPage'));
+    for (const pattern of BANNED) assert.doesNotMatch(nonFaq, pattern);
+    const faqPage = byType('FAQPage')!;
+    const items = faqPage.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
+    const others = items.filter((q) => q.name !== COMMISSION_Q);
+    assert.equal(others.length, 5);
+    const rest = JSON.stringify({ ...faqPage, mainEntity: others });
+    for (const pattern of BANNED) assert.doesNotMatch(rest, pattern);
   });
 
   it('includes FAQPage exactly when the home renders a FAQ, from the same array', () => {
     const rendersFaq =
       /LANDING_FAQ\.map/.test(faqComponent) && /<LandingFaq\s*\/>/.test(homePage);
     const faqPage = byType('FAQPage');
-    assert.equal(Boolean(faqPage), rendersFaq && agentSafeFaq().length > 0);
-    const questions = (faqPage!.mainEntity as { name: string; acceptedAnswer: { text: string } }[]);
-    const visible = new Map<string, string>(LANDING_FAQ.map((i) => [i.q, i.a]));
-    assert.equal(questions.length, agentSafeFaq().length);
-    for (const q of questions) {
-      assert.equal(visible.get(q.name), q.acceptedAnswer.text, 'FAQPage must mirror visible FAQ');
-    }
-    // The 5% commission line stays in the visible FAQ only.
+    assert.equal(Boolean(faqPage), rendersFaq);
+    const questions = (faqPage!.mainEntity as {
+      '@type': string;
+      name: string;
+      acceptedAnswer: { '@type': string; text: string };
+    }[]);
+    assert.equal(LANDING_FAQ.length, 6);
+    assert.equal(questions.length, LANDING_FAQ.length, 'FAQPage must have every visible item');
+    LANDING_FAQ.forEach((item, i) => {
+      assert.equal(questions[i]['@type'], 'Question');
+      assert.equal(questions[i].acceptedAnswer['@type'], 'Answer');
+      assert.equal(questions[i].name, item.q, `FAQPage item ${i} question drifted`);
+      assert.equal(questions[i].acceptedAnswer.text, item.a, `FAQPage item ${i} answer drifted`);
+    });
+    // The 5% commission line is visible and, approved 2026-11-14, also in FAQPage.
     assert.ok(LANDING_FAQ.some((i) => i.a.includes('5%')));
-    assert.ok(!questions.some((q) => q.acceptedAnswer.text.includes('5%')));
+    const commission = questions.find((q) => q.name === COMMISSION_Q);
+    assert.equal(commission?.acceptedAnswer.text, COMMISSION_A);
+    assert.equal(questions.filter((q) => q.acceptedAnswer.text.includes('5%')).length, 1);
   });
 
   it('escapes "<" so the script tag cannot be broken out of', () => {
